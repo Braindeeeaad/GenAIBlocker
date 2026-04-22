@@ -1,6 +1,9 @@
-#include "../crypto/crypto.cpp"
-
-
+#pragma once
+#include "../crypto/crypto.hpp"
+#include "../fs/memfs.hpp"
+#include <filesystem>
+#include <iostream> 
+#include <fstream>
 /*
 
     1. Need to check if a .cblocker file exists within current directory 

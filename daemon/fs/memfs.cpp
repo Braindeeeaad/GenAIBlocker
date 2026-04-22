@@ -6,15 +6,15 @@
 #include <sstream>
 #include "../crypto/crypto.hpp"
 
-MemFsDirectory::MemFsDirectory(const fs::path& filepath) 
-    : MemFsDirEntry(filepath) {
+MemFsDirectory::MemFsDirectory(const fs::path& filepath, std::shared_ptr<char> key) 
+    : MemFsDirEntry(filepath,key) {
     for(auto& entry : fs::directory_iterator(filepath)){
         if(entry.is_directory()){
-            auto dir = std::make_unique<MemFsDirectory>(entry.path());    
+            auto dir = std::make_unique<MemFsDirectory>(entry.path(),key);    
             entries.push_back(std::move(dir));
         }
         else{
-            auto file = std::make_unique<MemFsFile>(entry.path());
+            auto file = std::make_unique<MemFsFile>(entry.path(),key);
             entries.push_back(std::move(file));
         }
     }
@@ -59,8 +59,8 @@ void MemFsDirectory::deleteEntry(const fs::path& fpath) {
     }
 }
 
-MemFsFile::MemFsFile(const fs::path& filepath) 
-    : MemFsDirEntry(filepath) {
+MemFsFile::MemFsFile(const fs::path& filepath, std::shared_ptr<char> key) 
+    : MemFsDirEntry(filepath, key) {
     
 }
 
@@ -84,13 +84,23 @@ void MemFsFile::load(){
     while(std::getline(file,line)){
         this->encrypt_text+=line+"\n";
         //TODO: include line by line decryption code here
+        std::string decrypt_line = crypto::decryptLine(line,(const unsigned char *)(key.get()));
+        this->plain_text = decrypt_line;
     }
 
     file.close();
 }
 
-void MemFsFile::readFile() {
-
+std::string MemFsFile::readFile(size_t line_num) {
+    std::ifstream file(filepath.generic_string());
+    if(!file.is_open()){
+        std::cerr << "Failed to open file for reading" << filepath<<std::endl;
+    }
+    std::string output = "";
+    std::string line;
+    while(std::getline(file,line)){
+        
+    }
 }
 
 void MemFsFile::writeLine() {

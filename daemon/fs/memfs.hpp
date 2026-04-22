@@ -1,8 +1,9 @@
+#pragma once
 #include <string> 
 #include <vector>
 #include <memory>
 #include <filesystem>
-
+#define WINDOW_SIZE 10
 
 
 namespace fs = std::filesystem;
@@ -20,17 +21,17 @@ namespace fs = std::filesystem;
 
     4. Make a save function that rewrites the current directory/file back into its correct file.
 
-
-    6. Need to turn cryptopp functions from a stream into another cryptographic alg
-
 */
 
 
 class MemFsDirEntry {
 private: 
     std::filesystem::path filepath;
+protected: 
+    std::shared_ptr<char> key;
+
 public:
-    MemFsDirEntry(const std::filesystem::path& path) : filepath(path) {}
+    MemFsDirEntry(const std::filesystem::path& path,std::shared_ptr<char> key) : filepath(path), key(key) {}
 
     std::filesystem::path path() const {return filepath;}
 
@@ -45,7 +46,7 @@ private:
     fs::path filepath;
     std::vector<std::unique_ptr<MemFsDirEntry>> entries;
 public:
-    MemFsDirectory(const fs::path& filepath);
+    MemFsDirectory(const fs::path& filepath,std::shared_ptr<char> key);
     void save() override;
     void load() override; 
     bool is_directory() override; 
@@ -62,13 +63,13 @@ private:
     std::vector<off_t> plain_offset;
     std::vector<off_t> encrypt_offset;
 public:
-    MemFsFile(const fs::path& filepath);
+    MemFsFile(const fs::path& filepath, std::shared_ptr<char> key);
     
     void save() override;
     void load() override; 
     bool is_directory() override;
 
 
-    void readFile();
+    std::string readFile(size_t line);
     void writeLine();
 };
