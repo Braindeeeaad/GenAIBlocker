@@ -1,0 +1,101 @@
+//AES-256-GCM decrypt via libsodium 
+//
+#include <sodium.h> 
+#include <string>
+#include <fstream> 
+#include <iostream>
+#include <vector>
+#include <cstdint>
+#include <cstring>
+#include <charconv>
+
+#define MESSAGE (const unsigned char *) "test"
+#define MESSAGE_LEN 4
+#define ADDITIONAL_DATA (const unsigned char *) "123456"
+#define ADDITIONAL_DATA_LEN 6
+#define HEADER_LEN crypto_secretstream_xchacha20poly1305_HEADERBYTES+1
+
+using namespace std;
+
+struct cipher_pair{
+    size_t size;
+    vector<unsigned char> cipher;
+};
+
+
+vector<unsigned char> encrypt_mssg(string message, size_t line_num,  crypto_secretstream_xchacha20poly1305_state state){
+    size_t message_len = message.size();
+    unsigned char ciphertext[message_len + crypto_aead_aegis256_ABYTES];
+    unsigned long long ciphertext_len;
+    
+    //Getting nonce for current line
+    const unsigned char *ad_ptr = (const unsigned char *)&line_num;
+    unsigned long long ad_len = sizeof(line_num);
+
+    //Running encryption and getting cypher
+    crypto_secretstream_xchacha20poly1305_push(
+            &state, 
+            ciphertext, &ciphertext_len,      // Output ciphertext
+            (const unsigned char*)message.c_str(), message_len,     // Input plaintext line
+            ad_ptr, ad_len,               // line number as metadata
+            0                             // Tag (0 for normal chunk)
+        );
+    
+    vector<unsigned char> cipher(ciphertext,ciphertext+ciphertext_len);
+    return cipher;
+    
+}
+
+
+void encrypt_file(string filename){
+    //initalize input filestream 
+    ifstream infile(filename);
+    //open output file in binary mode
+    ofstream outfile("encrypt.txt",ios::binary);
+    string line; 
+
+    //keys and metadata needed for encryption
+    crypto_secretstream_xchacha20poly1305_state state;
+    unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
+    unsigned char header[HEADER_LEN];
+
+
+    //initalizing state
+    crypto_secretstream_xchacha20poly1305_keygen(key);
+    crypto_secretstream_xchacha20poly1305_init_push(&state, header, key);
+    header[crypto_secretstream_xchacha20poly1305_HEADERBYTES] = '\n';
+    if(outfile.is_open())
+        outfile.write((const char*)header,HEADER_LEN);
+
+    if(infile.is_open()){
+        size_t line_num  = 0;
+        while(getline(infile,line)){
+            cout << line << endl;
+
+            //Running encryption and getting cypher
+            vector<unsigned char> cipher = encrypt_mssg(line,line_num,state);
+            
+            //writing encrypted line to file
+            outfile.write((const char *)cipher.data(), cipher.size());
+            outfile.write("\n",1);
+            
+            line_num++;
+        }
+        infile.close();
+        outfile.close();
+    }
+    else{
+        cerr <<"Unable to open file: "<<filename<<endl; 
+    }
+
+}
+
+
+int main(void){
+    
+    
+    
+    encrypt_file("stuff.txt");
+
+    return 0;
+}

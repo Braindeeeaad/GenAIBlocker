@@ -1,0 +1,1 @@
+// Line cache, encrypt/decrypt range
