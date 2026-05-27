@@ -8,7 +8,8 @@
 #include <cstring>
 #include <cstring>
 #include <iomanip>
-
+#include <cryptopp/hex.h>
+#include <cryptopp/filters.h>
 
 #define MESSAGE (const unsigned char *) "test"
 #define MESSAGE_LEN 4
