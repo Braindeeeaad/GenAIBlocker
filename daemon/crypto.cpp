@@ -26,22 +26,22 @@ struct cipher_pair_len{
 
 
 string stringToHex(const string& input){
-    stringstream ss; 
-    ss << std::hex << std::setfill('0');
-    for(unsigned char c: input){
-        ss << setw(2) << static_cast<int>(c); 
-    }
-    return ss.str();
+    string output;
+    CryptoPP::StringSource(input,true, 
+        new CryptoPP::HexEncoder(
+            new CryptoPP::StringSink(output)
+        )
+    );
+    return output;
 }
 
 string hexToString(const string& input){
     string output;
-    if(input.length() % 2 != 0) return ""; 
-    for(size_t i=0; i<input.length(); i+=2){
-        string byteString = input.substr(i,2); 
-        char byte = static_cast<char>(stoi(byteString,nullptr,16));
-        output.push_back(byte);
-    }
+    CryptoPP::StringSource(input,true,
+        new CryptoPP::HexDecoder(
+            new CryptoPP::StringSink(output)
+        )
+    );
     return output;
 }
 
@@ -227,10 +227,14 @@ int main(void){
     
     unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
     crypto_secretstream_xchacha20poly1305_keygen(key);
-
-    cout<< (bool)(hexToString(stringToHex("Hello"))==stringToHex("Hello"))<<endl;
-    //encrypt_file("stuff.txt",key);
-    //decrypt_file("encrypt.txt",key);
+    //string plain = "Hello"; 
+    //string encoded = stringToHex(plain);
+    //string decoded = hexToString(encoded);
+    //cout<<plain<<endl<<encoded<<endl<<decoded<<endl;
+    //cout<<(plain==decoded)<<endl;
+    
+    encrypt_file("stuff.txt",key);
+    decrypt_file("encrypt.txt",key);
 
     return 0;
 }
