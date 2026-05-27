@@ -47,7 +47,7 @@ string hexToString(const string& input){
 
 
 
-string encrypt_mssg(string message, size_t line_num,  crypto_secretstream_xchacha20poly1305_state state){
+string encrypt_mssg(string message, size_t line_num,  crypto_secretstream_xchacha20poly1305_state &state){
     size_t message_len = message.size();
     //unsigned char ciphertext[message_len + crypto_aead_aegis256_ABYTES];
     vector<unsigned char> ciphertext(message_len + crypto_secretstream_xchacha20poly1305_ABYTES);
@@ -91,7 +91,6 @@ void encrypt_file(string filename, unsigned char* key){
 
 
     //initalizing state
-    crypto_secretstream_xchacha20poly1305_keygen(key);
     crypto_secretstream_xchacha20poly1305_init_push(&state, header, key);
     header[crypto_secretstream_xchacha20poly1305_HEADERBYTES] = '\n';
     if(outfile.is_open())
@@ -133,7 +132,7 @@ void encrypt_file(string filename, unsigned char* key){
     cout<<"Finished file encryption"<<endl;
 }
 
-string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha20poly1305_state state, cipher_pair_len pair_len){
+string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha20poly1305_state &state, cipher_pair_len pair_len){
     
 
     //Turning the hexcode string back to encrypted string
@@ -164,7 +163,7 @@ string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha2
 }
 void decrypt_file(string filename,unsigned char *key){
     //initalize input filestream 
-    ifstream infile(filename);
+    ifstream infile(filename, ios::binary);
     //open output file in binary mode
     ofstream outfile("decrypt.txt",ios::binary);
     string line; 
@@ -175,51 +174,31 @@ void decrypt_file(string filename,unsigned char *key){
 
 
     //initalizing state
-    crypto_secretstream_xchacha20poly1305_keygen(key);
-    crypto_secretstream_xchacha20poly1305_init_pull(&state, header, key);
     cout<<"Starting file decryption"<<endl;
-    if(infile.is_open())
-        infile.read((char *)header,crypto_secretstream_xchacha20poly1305_HEADERBYTES/sizeof(char));
+    if(infile.is_open()){
+        infile.read((char*)header, crypto_secretstream_xchacha20poly1305_HEADERBYTES);
+        infile.ignore(1);
+    }
+    crypto_secretstream_xchacha20poly1305_init_pull(&state, header, key);
 
     cout<<"Finished reading header: "<<header<<endl<<flush;
+    size_t line_num = 0;
+    while(infile.peek() != EOF){
+        // read the length metadata as raw binary
+        cipher_pair_len pair_len;
+        infile.read(reinterpret_cast<char*>(&pair_len), sizeof(cipher_pair_len));
+        if(infile.gcount() != sizeof(cipher_pair_len)) break;
 
-    if(infile.is_open()){
-        size_t line_num  = 0;
-        while(getline(infile,line)){
-            if(line=="")continue;
-            cout <<"Line: "<<line << endl<<flush;
-            
-            //reading cipher pair len first 
-            cipher_pair_len pair_len;
-            cout<<"We chilling1"<<endl<<flush;
-            string cipher_pair_string = line.substr(0,sizeof(cipher_pair_len));
-            cout<<"We chilling2"<<endl<<flush;
+        // read exactly the cipher bytes + the trailing \n
+        string cipher_string(pair_len.cipher_len, '\0');
+        infile.read(cipher_string.data(), pair_len.cipher_len);
+        infile.ignore(1); // consume the \n separator
 
-            char * pair_len_buffer = (char *)cipher_pair_string.c_str(); 
-            memcpy(&pair_len,pair_len_buffer,sizeof(cipher_pair_len));
-
-            cout<<"We chilling3"<<endl<<flush;
-
-            //getting cipher portion of string 
-            string cipher_string = line.substr(sizeof(cipher_pair_len));
-            cout<<"We chilling4"<<endl<<flush;
-
-            //Running encryption and getting cypher
-            string original_line = decrypt_mssg(cipher_string,cipher_string.size(),state,pair_len);
-            
-            //writing encrypted line to file
-            outfile.write((const char *)original_line.data(), original_line.size());
-            outfile.write("\n",1);
-            
-            line_num++;
-        }
-        infile.close();
-        outfile.close();
+        string original_line = decrypt_mssg(cipher_string, line_num, state, pair_len);
+        outfile.write(original_line.data(), original_line.size());
+        outfile.write("\n", 1);
+        line_num++;
     }
-    else{
-        cerr <<"Unable to open file: "<<filename<<endl; 
-    }
-
 }
 
 int main(void){

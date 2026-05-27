@@ -1,3 +1,4 @@
 libsodium-*
 *.tar
 keys
+build
