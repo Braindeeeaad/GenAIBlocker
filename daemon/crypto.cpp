@@ -97,10 +97,16 @@ void encrypt_file(string filename, unsigned char* key){
 
     //initalizing state
     crypto_secretstream_xchacha20poly1305_init_push(&state, header, key);
-    header[crypto_secretstream_xchacha20poly1305_HEADERBYTES] = '\n';
-    if(outfile.is_open())
-        outfile.write((const char*)header,HEADER_LEN);
+    
 
+    //writing header at top of file
+    header[crypto_secretstream_xchacha20poly1305_HEADERBYTES] = '\n';
+    string header_str(header,header+crypto_secretstream_xchacha20poly1305_HEADERBYTES);
+    string hex_encoded_header = stringToHex(header_str);
+    if(outfile.is_open()){
+        outfile.write(hex_encoded_header.data(),hex_encoded_header.size());
+        outfile.write("\n",1);
+    }
     cout<<"Finished writing header: "<<header<<endl<<flush;
 
     
@@ -181,15 +187,17 @@ void decrypt_file(string filename,unsigned char *key){
 
 
     //initalizing state
+    string line;
     cout<<"Starting file decryption"<<endl;
-    if(infile.is_open()){
-        infile.read((char*)header, crypto_secretstream_xchacha20poly1305_HEADERBYTES);
-        infile.ignore(1);
+    if(infile.is_open() && getline(infile,line)){
+        //infile.read((char*)header, crypto_secretstream_xchacha20poly1305_HEADERBYTES);
+        //infile.ignore(1);
+        string decoded_header = hexToString(line);
+        memcpy(header,decoded_header.data(),crypto_secretstream_xchacha20poly1305_HEADERBYTES);
     }
     crypto_secretstream_xchacha20poly1305_init_pull(&state, header, key);
 
     cout<<"Finished reading header: "<<header<<endl<<flush;
-    string line;
     if(infile.is_open()){
         size_t line_num  = 0;
         while(getline(infile,line)){
