@@ -19,6 +19,7 @@
 
 
 using namespace std;
+using path = filesystem::path;
 using recursive_directory_iterator = filesystem::recursive_directory_iterator;
 
 
@@ -143,34 +144,36 @@ void encrypt_file(string in_filename, string out_filename, unsigned char* key){
     cout<<"Finished file encryption"<<endl;
 }
 
-void encrypt_directory(const string& filepath, unsigned char* key){
-    size_t dir_name_pos = filepath.rfind("\\");
-    string dir_name = filepath.substr(dir_name_pos+1);
-    string encrypted_dir_path =  filepath.substr(0,dir_name_pos)+"encrypted/";
+void encrypt_directory(const string& filepath, unsigned char* key) {
+    path source_dir(filepath);
     
-    for(const auto& dir_entry : recursive_directory_iterator(filepath)){
-        cout<<dir_entry.path()<<endl;
-        //passing if the current direntry is a subdirectory
-        if(dir_entry.is_directory())
+    // Define our base encrypted directory target (e.g., "files/encrypted")
+    path encrypted_base_dir = source_dir.parent_path() / "encrypted";
+
+    for (const auto& dir_entry : recursive_directory_iterator(source_dir)) {
+        
+        // get the relative path from the source root 
+        // if source is "files" and current is "files/folder/stuff2.txt", 
+        // relative path becomes "folder/stuff2.txt"
+        path relative_path = relative(dir_entry.path(), source_dir);
+        
+        // construct the absolute target path under the encrypted folder
+        path target_path = encrypted_base_dir / relative_path;
+
+        // if it's a directory, ensure it exists in the encrypted tree and move on
+        if (dir_entry.is_directory()) {
+            create_directories(target_path);
             continue;
+        }
 
-        //getting the current path as a string    
-        string dir_entry_str;
-        
-        stringstream ss; 
-        ss << dir_entry.path();
-        
-        ss >> dir_entry_str;
+        // if it's a file, make sure its parent directory chain exists before writing
+        create_directories(target_path.parent_path());
 
-        //finding where the dir_name is in the current file_path
-        size_t current_dir_name_pos = dir_entry_str.find(dir_name);
-        //getting the file path info after dir_name
-        string current_file_name = dir_entry_str.substr(current_dir_name_pos+dir_name.size()+2);    
-        //attaching the end/suffix file path to our encrypted_dir_path to get our outfile path
-        string current_encrypted_file_name = encrypted_dir_path+current_file_name;
-        encrypt_file(dir_entry_str,current_encrypted_file_name,key);
+        cout << "Encrypting: " << dir_entry.path().string() 
+             << " -> " << target_path.string() << endl << flush;
 
-
+        // run encryption function using clean string paths
+        encrypt_file(dir_entry.path().string(), target_path.string(), key);
     }
 }
 void print_directory(const string& filepath){
@@ -280,7 +283,7 @@ int main(void){
     //encrypt_file("stuff.txt",key);
     //decrypt_file("encrypt.txt",key);
 
-
-    print_directory("./files");
+    encrypt_directory("files",key);
+    //print_directory("./files");
     return 0;
 }
