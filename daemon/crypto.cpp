@@ -176,9 +176,8 @@ void encrypt_directory(const string& filepath, unsigned char* key) {
         encrypt_file(dir_entry.path().string(), target_path.string(), key);
     }
 }
-void print_directory(const string& filepath){
-    
-}
+
+
 
 string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha20poly1305_state &state, cipher_pair_len pair_len){
     
@@ -212,11 +211,11 @@ string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha2
 
 
 
-void decrypt_file(string filename,unsigned char *key){
+void decrypt_file(string in_filename, string out_filename,unsigned char *key){
     //initalize input filestream 
-    ifstream infile(filename, ios::binary);
+    ifstream infile(in_filename, ios::binary);
     //open output file in binary mode
-    ofstream outfile("decrypt.txt",ios::binary);
+    ofstream outfile(out_filename,ios::binary);
 
     //keys and metadata needed for encryption
     crypto_secretstream_xchacha20poly1305_state state;
@@ -261,13 +260,45 @@ void decrypt_file(string filename,unsigned char *key){
         outfile.close();
     }
     else{
-        cerr <<"Unable to open file: "<<filename<<endl; 
+        cerr <<"Unable to open file: "<<in_filename<<endl; 
     }
     cout<<"Finished file decryption"<<endl;
     
 }
 
+void decrypt_directory(const string& filepath, unsigned char* key){
+    path source_dir(filepath);
+    
+    // Define our base encrypted directory target (e.g., "files/decrypted")
+    path decrypted_base_dir = source_dir.parent_path() / "decrypted";
 
+    for (const auto& dir_entry : recursive_directory_iterator(source_dir)) {
+        
+        // get the relative path from the source root 
+        // if source is "files" and current is "files/folder/stuff2.txt", 
+        // relative path becomes "folder/stuff2.txt"
+        path relative_path = relative(dir_entry.path(), source_dir);
+        
+        // construct the absolute target path under the decrypted folder
+        path target_path = decrypted_base_dir / relative_path;
+
+        // if it's a directory, ensure it exists in the encrypted tree and move on
+        if (dir_entry.is_directory()) {
+            create_directories(target_path);
+            continue;
+        }
+
+        // if it's a file, make sure its parent directory chain exists before writing
+        create_directories(target_path.parent_path());
+
+        cout << "Decryptign: " << dir_entry.path().string() 
+             << " -> " << target_path.string() << endl << flush;
+
+        // run encryption function using clean string paths
+        decrypt_file(dir_entry.path().string(), target_path.string(), key);
+    }
+
+}
 
 int main(void){
     
@@ -284,6 +315,7 @@ int main(void){
     //decrypt_file("encrypt.txt",key);
 
     encrypt_directory("files",key);
+    decrypt_directory("encrypted",key);
     //print_directory("./files");
     return 0;
 }
