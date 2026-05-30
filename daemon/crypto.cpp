@@ -112,6 +112,8 @@ void encrypt_file(string filename, unsigned char* key){
             string cipher = encrypt_mssg(line,line_num,state); 
             //writing line length info first 
             cipher_pair_len pair_len = {cipher.size(),line.size()};
+            cout<<line_num<<"  Pair Len:"<<pair_len.mssg_len<<","<<pair_len.cipher_len<<endl<<endl<<flush;
+
             const char* pair_len_buffer = reinterpret_cast<const char*>(&pair_len);
             const string pair_len_buffer_as_str = hexEncodeCipherPairLen(pair_len_buffer);
             outfile.write(pair_len_buffer_as_str.data(),pair_len_buffer_as_str.size());
@@ -197,14 +199,15 @@ void decrypt_file(string filename,unsigned char *key){
             //finding cipher-pair len and cipher
             size_t delim_pos = line.find(PAIR_LEN_DELIMITER);
             string hex_encoded_cipher_pair_len = line.substr(0,delim_pos);
-            string hex_encoded_cipher = line.substr(delim_pos);
-
-            string cipher = hexToString(hex_encoded_cipher);
+            string hex_encoded_cipher = line.substr(delim_pos+1);
+            
             string cipher_pair_len_str = hexToString(hex_encoded_cipher_pair_len);
-            memcpy(&pair_len,cipher_pair_len_str.data(),cipher_pair_len_str.size());            
+            memcpy(&pair_len,cipher_pair_len_str.data(),sizeof(cipher_pair_len));            
            
+            cout<<line_num<<"  Pair Len:"<<pair_len.mssg_len<<","<<pair_len.cipher_len<<endl<<endl<<flush;
             //decrypt to get original line
-            string original_line = decrypt_mssg(cipher, line_num, state, pair_len);
+            string original_line = decrypt_mssg(hex_encoded_cipher, line_num, state, pair_len);
+            
             outfile.write(original_line.data(), original_line.size());
             outfile.write("\n", 1);
             line_num++;
