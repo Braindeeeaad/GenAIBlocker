@@ -7,7 +7,6 @@
 #include <vector>
 #include <cstring>
 #include <cstring>
-#include <iomanip>
 #include <cryptopp/hex.h>
 #include <cryptopp/filters.h>
 
@@ -16,6 +15,8 @@
 #define ADDITIONAL_DATA (const unsigned char *) "123456"
 #define ADDITIONAL_DATA_LEN 6
 #define HEADER_LEN crypto_secretstream_xchacha20poly1305_HEADERBYTES+1
+#define PAIR_LEN_DELIMITER ":"
+
 
 using namespace std;
 
@@ -45,6 +46,10 @@ string hexToString(const string& input){
     return output;
 }
 
+string hexEncodeCipherPairLen( const char* input){
+    string input_str(input,input+sizeof(cipher_pair_len));
+    return stringToHex(input_str);
+}
 
 
 string encrypt_mssg(string message, size_t line_num,  crypto_secretstream_xchacha20poly1305_state &state){
@@ -102,19 +107,15 @@ void encrypt_file(string filename, unsigned char* key){
     if(infile.is_open()){
         size_t line_num  = 0;
         while(getline(infile,line)){
-            //cout << line << endl;
 
-
-
-            //Running encryption and getting cypher
-            string cipher = encrypt_mssg(line,line_num,state);
-            
-
+             //Running encryption and getting cypher
+            string cipher = encrypt_mssg(line,line_num,state); 
             //writing line length info first 
             cipher_pair_len pair_len = {cipher.size(),line.size()};
             const char* pair_len_buffer = reinterpret_cast<const char*>(&pair_len);
-            outfile.write(pair_len_buffer,sizeof(cipher_pair_len));
-
+            const string pair_len_buffer_as_str = hexEncodeCipherPairLen(pair_len_buffer);
+            outfile.write(pair_len_buffer_as_str.data(),pair_len_buffer_as_str.size());
+            outfile.write(PAIR_LEN_DELIMITER,1);
 
             //writing encrypted line to file
             outfile.write((const char *)cipher.data(), cipher.size());
@@ -131,6 +132,8 @@ void encrypt_file(string filename, unsigned char* key){
     }
     cout<<"Finished file encryption"<<endl;
 }
+
+
 
 string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha20poly1305_state &state, cipher_pair_len pair_len){
     
@@ -161,12 +164,14 @@ string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha2
 
 
 }
+
+
+
 void decrypt_file(string filename,unsigned char *key){
     //initalize input filestream 
     ifstream infile(filename, ios::binary);
     //open output file in binary mode
     ofstream outfile("decrypt.txt",ios::binary);
-    string line; 
 
     //keys and metadata needed for encryption
     crypto_secretstream_xchacha20poly1305_state state;
@@ -182,24 +187,39 @@ void decrypt_file(string filename,unsigned char *key){
     crypto_secretstream_xchacha20poly1305_init_pull(&state, header, key);
 
     cout<<"Finished reading header: "<<header<<endl<<flush;
-    size_t line_num = 0;
-    while(infile.peek() != EOF){
-        // read the length metadata as raw binary
-        cipher_pair_len pair_len;
-        infile.read(reinterpret_cast<char*>(&pair_len), sizeof(cipher_pair_len));
-        if(infile.gcount() != sizeof(cipher_pair_len)) break;
+    string line;
+    if(infile.is_open()){
+        size_t line_num  = 0;
+        while(getline(infile,line)){
 
-        // read exactly the cipher bytes + the trailing \n
-        string cipher_string(pair_len.cipher_len, '\0');
-        infile.read(cipher_string.data(), pair_len.cipher_len);
-        infile.ignore(1); // consume the \n separator
+            cipher_pair_len pair_len;
 
-        string original_line = decrypt_mssg(cipher_string, line_num, state, pair_len);
-        outfile.write(original_line.data(), original_line.size());
-        outfile.write("\n", 1);
-        line_num++;
+            //finding cipher-pair len and cipher
+            size_t delim_pos = line.find(PAIR_LEN_DELIMITER);
+            string hex_encoded_cipher_pair_len = line.substr(0,delim_pos);
+            string hex_encoded_cipher = line.substr(delim_pos);
+
+            string cipher = hexToString(hex_encoded_cipher);
+            string cipher_pair_len_str = hexToString(hex_encoded_cipher_pair_len);
+            memcpy(&pair_len,cipher_pair_len_str.data(),cipher_pair_len_str.size());            
+           
+            //decrypt to get original line
+            string original_line = decrypt_mssg(cipher, line_num, state, pair_len);
+            outfile.write(original_line.data(), original_line.size());
+            outfile.write("\n", 1);
+            line_num++;
+        }
+        infile.close();
+        outfile.close();
     }
+    else{
+        cerr <<"Unable to open file: "<<filename<<endl; 
+    }
+    cout<<"Finished file decryption"<<endl;
+    
 }
+
+
 
 int main(void){
     
