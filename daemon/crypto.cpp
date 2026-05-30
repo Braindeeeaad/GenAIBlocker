@@ -9,7 +9,7 @@
 #include <cstring>
 #include <cryptopp/hex.h>
 #include <cryptopp/filters.h>
-
+#include <filesystem> 
 #define MESSAGE (const unsigned char *) "test"
 #define MESSAGE_LEN 4
 #define ADDITIONAL_DATA (const unsigned char *) "123456"
@@ -19,6 +19,8 @@
 
 
 using namespace std;
+using recursive_directory_iterator = filesystem::recursive_directory_iterator;
+
 
 struct cipher_pair_len{
     size_t cipher_len;
@@ -142,6 +144,10 @@ void encrypt_file(string filename, unsigned char* key){
 }
 
 
+void print_directory(const string& filepath){
+    for(const auto& dirEntry : recursive_directory_iterator(filepath))
+        cout<<dirEntry<<endl;
+}
 
 string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha20poly1305_state &state, cipher_pair_len pair_len){
     
@@ -243,8 +249,10 @@ int main(void){
     //cout<<plain<<endl<<encoded<<endl<<decoded<<endl;
     //cout<<(plain==decoded)<<endl;
     
-    encrypt_file("stuff.txt",key);
-    decrypt_file("encrypt.txt",key);
+    //encrypt_file("stuff.txt",key);
+    //decrypt_file("encrypt.txt",key);
 
+
+    print_directory("./files");
     return 0;
 }
