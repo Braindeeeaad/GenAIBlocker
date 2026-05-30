@@ -84,12 +84,12 @@ string encrypt_mssg(string message, size_t line_num,  crypto_secretstream_xchach
 }
 
 
-void encrypt_file(string filename, unsigned char* key){
+void encrypt_file(string in_filename, string out_filename, unsigned char* key){
     cout<<"Started file encryption"<<endl;
     //initalize input filestream 
-    ifstream infile(filename);
+    ifstream infile(in_filename);
     //open output file in binary mode
-    ofstream outfile("encrypt.txt",ios::binary);
+    ofstream outfile(out_filename,ios::binary);
     string line; 
 
     //keys and metadata needed for encryption
@@ -138,15 +138,43 @@ void encrypt_file(string filename, unsigned char* key){
         outfile.close();
     }
     else{
-        cerr <<"Unable to open file: "<<filename<<endl; 
+        cerr <<"Unable to open file: "<<in_filename<<endl; 
     }
     cout<<"Finished file encryption"<<endl;
 }
 
+void encrypt_directory(const string& filepath, unsigned char* key){
+    size_t dir_name_pos = filepath.rfind("\\");
+    string dir_name = filepath.substr(dir_name_pos+1);
+    string encrypted_dir_path =  filepath.substr(0,dir_name_pos)+"encrypted/";
+    
+    for(const auto& dir_entry : recursive_directory_iterator(filepath)){
+        cout<<dir_entry.path()<<endl;
+        //passing if the current direntry is a subdirectory
+        if(dir_entry.is_directory())
+            continue;
 
+        //getting the current path as a string    
+        string dir_entry_str;
+        
+        stringstream ss; 
+        ss << dir_entry.path();
+        
+        ss >> dir_entry_str;
+
+        //finding where the dir_name is in the current file_path
+        size_t current_dir_name_pos = dir_entry_str.find(dir_name);
+        //getting the file path info after dir_name
+        string current_file_name = dir_entry_str.substr(current_dir_name_pos+dir_name.size()+2);    
+        //attaching the end/suffix file path to our encrypted_dir_path to get our outfile path
+        string current_encrypted_file_name = encrypted_dir_path+current_file_name;
+        encrypt_file(dir_entry_str,current_encrypted_file_name,key);
+
+
+    }
+}
 void print_directory(const string& filepath){
-    for(const auto& dirEntry : recursive_directory_iterator(filepath))
-        cout<<dirEntry<<endl;
+    
 }
 
 string decrypt_mssg(string cipher, size_t line_num, crypto_secretstream_xchacha20poly1305_state &state, cipher_pair_len pair_len){
