@@ -1,4 +1,4 @@
-#include "include/crypto.hpp"
+#include "crypto.cpp"
 
 namespace fs = std::filesystem;
 
@@ -10,29 +10,32 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    std::string command = argv[1]; 
-    std::string filepath = argv[2];
-
-    if(!fs::exists(filepath)){
-        std::cerr<<"Error: file not found" << filepath << "\n";
-        return 1;
-    }
-    
     crypto cr;
 
-    if(command=="encrypt"){
-        cr.encrypt_directory(filepath);
-    }
-    else if(command=="decrypt"){
-        cr.decrypt_directory(filepath);
-    }
-    else{
-        std::cerr<< "Unknown command: "<< command << "\n"
-            <<"Valid commands: encrypt, decrypt\n";
+    if((argc-1)%2!=0){
+        std::cerr<<"Missing commands"<<std::endl;
         return 1;
     }
 
+    int i = 1;
+    while(i<argc){
 
-    
+        std::string command = argv[i]; 
+        std::string filepath = argv[i+1];    
+        if(!fs::exists(filepath)){
+            std::cerr<<"Error: file not found" << filepath << "\n";
+            return 1;
+        }
+
+        if(command=="encrypt"){
+            cr.encrypt_directory(filepath);
+        }
+        else if(command=="decrypt"){
+            cr.decrypt_directory(filepath);
+        }
+
+        i+=2;
+    }
+
     return 0;
 }
