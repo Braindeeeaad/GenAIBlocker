@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <unistd.h>
+#include <assert.h>
 #include <cerrno>
 #include <cstring>
 #include <string>
@@ -11,6 +12,11 @@
 #include <thread>
 #include <atomic>
 #include <condition_variable>
+#include <fstream>
+#include <iostream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace daemonpp{
     
@@ -18,21 +24,43 @@ namespace daemonpp{
 
         private: 
             void daemonize(){
-                pid_t pid = fork(); 
-                
-                //error when forking
-                if(pid< 0) exit(EXIT_FAILURE); 
-                //early terminating parent process so only child process runs
-                if(pid>0) exit(EXIT_SUCCESS);
+                pid_t child_pid = fork(); 
+                assert(child_pid != -1);
+                if(child_pid>0)
+                    exit(EXIT_SUCCESS);
+                //creates new session
+                setsid();
+                child_pid = fork(); 
+                assert(child_pid != -1);
+                if(child_pid>0)
+                    exit(EXIT_SUCCESS);
 
-                //child process code 
-
-                umask(0);
-                chdir("/");
+                //daemon is now detached from terminal  
                 
-                close(STDIN_FILENO);
-                close(STDOUT_FILENO); 
-                close(STDERR_FILENO);
+                //saving pid locally in .pid
+
+                //TODO: make the duplicate daemon spin up prevention better
+                assert(!fs::exists(("cblocker_daemon.pid")));
+                std::ofstream pid_save("cblocker_daemon.pid");
+                
+                if(!pid_save.is_open()){
+                    exit(EXIT_FAILURE);
+                }
+                pid_t pid  = getpid();
+                pid_save.write((char *)&pid,sizeof(pid));
+
+
+                //setting up log file
+                
+                const char *log_file_path = "cblocker_daemon.log";
+                FILE *log_file = fopen(log_file_path,"a");
+                assert(log_file!=NULL);
+                setlinebuf(log_file);
+                setlinebuf(stdout);
+                setlinebuf(stderr); 
+                int log_fd =fileno(log_file);
+                dup2(log_fd,STDOUT_FILENO);
+                dup2(log_fd,STDERR_FILENO);
 
             }
         
