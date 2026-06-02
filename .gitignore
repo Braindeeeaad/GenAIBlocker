@@ -2,3 +2,5 @@ libsodium-*
 *.tar
 keys
 build
+encrypted 
+decrypted
