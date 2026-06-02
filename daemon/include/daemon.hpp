@@ -1,19 +1,13 @@
 #pragma once
-#include <iostream>
 #include <unistd.h>
 #include <assert.h>
-#include <cerrno>
+
 #include <cstring>
 #include <string>
-#include <csignal>
+
 #include <sys/stat.h>
-#include <stdexcept>
-#include <chrono>
-#include <thread>
-#include <atomic>
-#include <condition_variable>
+
 #include <fstream>
-#include <iostream>
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -40,8 +34,8 @@ namespace daemonpp{
                 //saving pid locally in .pid
 
                 //TODO: make the duplicate daemon spin up prevention better
-                assert(!fs::exists(("cblocker_daemon.pid")));
-                std::ofstream pid_save("cblocker_daemon.pid");
+                assert(!fs::exists((name+"pid")));
+                std::ofstream pid_save(name+".pid");
                 
                 if(!pid_save.is_open()){
                     exit(EXIT_FAILURE);
@@ -51,8 +45,8 @@ namespace daemonpp{
 
 
                 //setting up log file
-                
-                const char *log_file_path = "cblocker_daemon.log";
+                std::string log_file_name = name+".log";
+                const char *log_file_path = log_file_name.data();
                 FILE *log_file = fopen(log_file_path,"a");
                 assert(log_file!=NULL);
                 setlinebuf(log_file);
@@ -64,8 +58,13 @@ namespace daemonpp{
 
             }
         
+        //should make a terminate function that cleanly removes the .pid and other reasources its occupying
         public:
-            daemon(){};
+            daemon(const std::string& name):name(name){
+                this->daemonize();
+            };
     
+        private: 
+            std::string name;
     };
 }

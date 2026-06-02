@@ -4,3 +4,5 @@ keys
 build
 encrypted 
 decrypted
+*.pid 
+*.log

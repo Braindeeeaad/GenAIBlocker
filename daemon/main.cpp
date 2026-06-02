@@ -1,5 +1,5 @@
 #include "crypto.cpp"
-
+#include "include/daemon.hpp"
 namespace fs = std::filesystem;
 
 int main(int argc, char *argv[]){
@@ -16,6 +16,8 @@ int main(int argc, char *argv[]){
         std::cerr<<"Missing commands"<<std::endl;
         return 1;
     }
+
+    daemonpp::daemon dm("cblocker");
 
     int i = 1;
     while(i<argc){
