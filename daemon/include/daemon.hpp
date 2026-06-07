@@ -15,8 +15,10 @@ namespace fs = std::filesystem;
 namespace daemonpp{
     
     class daemon{
+        
+        //should make a terminate function that cleanly removes the .pid and other reasources its occupying
+        public:
 
-        private: 
             void daemonize(){
                 pid_t child_pid = fork(); 
                 assert(child_pid != -1);
@@ -58,11 +60,7 @@ namespace daemonpp{
 
             }
         
-        //should make a terminate function that cleanly removes the .pid and other reasources its occupying
-        public:
-            daemon(const std::string& name):name(name){
-                this->daemonize();
-            };
+            daemon(const std::string& name):name(name){};
     
         private: 
             std::string name;

@@ -18,6 +18,7 @@ int main(int argc, char *argv[]){
     }
 
     daemonpp::daemon dm("cblocker");
+    dm.daemonize();
 
     int i = 1;
     while(i<argc){
