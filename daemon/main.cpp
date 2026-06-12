@@ -19,18 +19,6 @@ namespace fs = std::filesystem;
 
 */
 
-static void handle_termination(){
-    
-}
-
-static void init_service(){
-
-}
-
-static void run_main_loop(){
-
-}
-
 
 int main(int argc, char *argv[]){
     if(argc<3){
@@ -49,25 +37,21 @@ int main(int argc, char *argv[]){
 
     daemonpp::daemon dm("cblocker");
     dm.daemonize();
+    NetworkRequestChannel channel("", 12345, NetworkRequestChannel::SERVER_SIDE);
+    channel.accept_connection();
 
-    int i = 1;
-    while(i<argc){
 
-        std::string command = argv[i]; 
-        std::string filepath = argv[i+1];    
-        if(!fs::exists(filepath)){
-            std::cerr<<"Error: file not found" << filepath << "\n";
-            return 1;
-        }
-
+    while(true){
+        Request req = channel.receive_request();
+        std::string command = req.command;
+        std::string filepath = req.filepath;
         if(command=="encrypt"){
             cr.encrypt_directory(filepath);
         }
         else if(command=="decrypt"){
             cr.decrypt_directory(filepath);
         }
-
-        i+=2;
+        channel.send_response(Response(true,"",""));
     }
 
     return 0;
