@@ -1,6 +1,36 @@
 #include "crypto.cpp"
 #include "include/daemon.hpp"
+#include "network_channel.h"
+#include <signal.h>
+
 namespace fs = std::filesystem;
+
+
+
+
+/*
+    What do we need to do? 
+    
+    - need to setup network channel in main after daeminization
+    - Need to figure out terminating condition of the main loop
+    - Need to provide signal handlers to properly clean up reasources 
+    
+
+
+*/
+
+static void handle_termination(){
+    
+}
+
+static void init_service(){
+
+}
+
+static void run_main_loop(){
+
+}
+
 
 int main(int argc, char *argv[]){
     if(argc<3){
