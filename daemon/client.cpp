@@ -20,13 +20,13 @@ int main(int argc, char *argv[]){
     }
 
     
-    NetworkRequestChannel channel("", 12345, NetworkRequestChannel::CLIENT_SIDE);
-    channel.accept_connection();
+    NetworkRequestChannel channel("127.0.0.1", 12345, NetworkRequestChannel::CLIENT_SIDE);
     int i = 1;
     while(i<argc){
 
         std::string command = argv[i]; 
         std::string filepath = argv[i+1];    
+        std::cout << "Command: " << command << ", Filepath: " << filepath << std::endl;
         if(!fs::exists(filepath)){
             std::cerr<<"Error: file not found" << filepath << "\n";
             return 1;

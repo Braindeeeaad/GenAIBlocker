@@ -31,11 +31,11 @@ int main(int argc, char *argv[]){
 
     daemonpp::daemon dm("cblocker");
     dm.daemonize();
-    NetworkRequestChannel channel("", 12345, NetworkRequestChannel::SERVER_SIDE);
-    channel.accept_connection();
-
-
     while(true){
+        NetworkRequestChannel listener("", 12345, NetworkRequestChannel::SERVER_SIDE);
+        int client_fd = listener.accept_connection();
+        
+        NetworkRequestChannel channel(client_fd);
         Request req = channel.receive_request();
         std::string command = req.command;
         std::string filepath = req.filepath;
@@ -47,6 +47,10 @@ int main(int argc, char *argv[]){
         }
         channel.send_response(Response(true,"",""));
     }
+    
+
+
+    
 
     return 0;
 }

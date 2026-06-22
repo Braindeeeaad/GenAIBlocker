@@ -317,7 +317,7 @@ Request NetworkRequestChannel::receive_request() {
     Request req = Request("","",0,0);
     string token;
     getline(sr,token,'|');
-    req.command = (token=="1");
+    req.command = token;
     getline(sr,token,'|');
     req.filepath = token;
     getline(sr,token,'|');
