@@ -183,7 +183,7 @@ public:
         // writing out the encrypted line+ a \n
         outfile.write("\n", 1);
 
-        line_num++;
+        //line_num++;
       }
       infile.close();
       outfile.close();
@@ -285,7 +285,7 @@ public:
 
         outfile.write(original_line.data(), original_line.size());
         outfile.write("\n", 1);
-        line_num++;
+        //line_num++;
       }
       infile.close();
       outfile.close();
