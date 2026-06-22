@@ -236,7 +236,70 @@ public:
   
   */
 
+  std::string decrypt_window(std::string in_filename, size_t line_num, size_t window_size) {
+    // initalize input filestream
+    std::ifstream infile(in_filename, std::ios::binary);
+    // open output file in binary mode
+    
 
+    // keys and metadata needed for encryption
+    crypto_secretstream_xchacha20poly1305_state state;
+    unsigned char header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
+
+    // initalizing state
+    std::string line;
+    std::cout << "Starting file decryption" << std::endl;
+    if (infile.is_open() && getline(infile, line)) {
+      // infile.read((char*)header,
+      // crypto_secretstream_xchacha20poly1305_HEADERBYTES); infile.ignore(1);
+      std::string decoded_header = hexToString(line);
+      memcpy(header, decoded_header.data(),
+             crypto_secretstream_xchacha20poly1305_HEADERBYTES);
+    }
+    crypto_secretstream_xchacha20poly1305_init_pull(&state, header, key);
+    
+    std::string decrypted_window;
+    std::cout << "Finished reading header: " << header << std::endl << std::flush;
+    if (infile.is_open()) {
+      size_t curr_line = 0;
+      size_t start_line = line_num-window_size/2;
+      start_line = (start_line<0)?0:start_line;
+      size_t end_line = line_num+window_size/2;
+      while (getline(infile, line)) {
+        
+        cipher_pair_len pair_len;
+
+        // finding cipher-pair len and cipher
+        size_t delim_pos = line.find(PAIR_LEN_DELIMITER);
+        std::string hex_encoded_cipher_pair_len = line.substr(0, delim_pos);
+        std::string hex_encoded_cipher = line.substr(delim_pos + 1);
+
+        std::string cipher_pair_len_str = hexToString(hex_encoded_cipher_pair_len);
+        memcpy(&pair_len, cipher_pair_len_str.data(), sizeof(cipher_pair_len));
+
+        std::cout << curr_line << "  Pair Len:" << pair_len.mssg_len << ","
+             << pair_len.cipher_len << std::endl
+             << std::endl
+             << std::flush;
+        // decrypt to get original line
+        std::string original_line =
+            decrypt_mssg(hex_encoded_cipher, 0, state, pair_len);
+
+        if(curr_line>=start_line && curr_line<=end_line){
+          decrypted_window += original_line + "\n";
+        }
+
+        //outfile.write(original_line.data(), original_line.size());
+        //outfile.write("\n", 1);
+        curr_line++;
+      }
+      infile.close();
+    } else {
+      std::cerr << "Unable to open file: " << in_filename << std::endl;
+    }
+    std::cout << "Finished file decryption" << std::endl;
+    return decrypted_window;
+  }
 
   void decrypt_file(std::string in_filename, std::string out_filename) {
     // initalize input filestream

@@ -20,37 +20,52 @@ namespace fs = std::filesystem;
 */
 
 
-int main(int argc, char *argv[]){
-
+int main(int argc, char *argv[]) {
     crypto cr;
 
     if((argc-1)%2!=0){
-        std::cerr<<"Missing commands"<<std::endl;
+        std::cerr << "Missing commands" << std::endl;
         return 1;
     }
 
     daemonpp::daemon dm("cblocker");
     dm.daemonize();
-    while(true){
-        NetworkRequestChannel listener("", 12345, NetworkRequestChannel::SERVER_SIDE);
+
+
+    NetworkRequestChannel listener("", 12345, NetworkRequestChannel::SERVER_SIDE);
+
+    while(true) {
         int client_fd = listener.accept_connection();
         
         NetworkRequestChannel channel(client_fd);
+        
+        
         Request req = channel.receive_request();
         std::string command = req.command;
         std::string filepath = req.filepath;
-        if(command=="encrypt"){
+        
+        Response resp(false, "", "Unknown Command");
+
+        if(command == "encrypt") {
             cr.encrypt_directory(filepath);
+            resp = Response(true, "Success", "Directory encrypted");
         }
-        else if(command=="decrypt"){
+        else if(command == "decrypt") {
             cr.decrypt_directory(filepath);
+            resp = Response(true, "Success", "Directory decrypted");
         }
-        channel.send_response(Response(true,"",""));
+        else if(command == "decrypt_window") {
+            try {
+                std::string decrypted_text = cr.decrypt_window(filepath, req.line, req.window_size);
+                resp = Response(true, "Success", "Window decrypted", decrypted_text);
+            } catch (const std::exception& e) {
+                resp = Response(false, "Error", e.what());
+            }
+        }
+        
+        channel.send_response(resp);
+    
     }
-    
-
-
-    
 
     return 0;
 }
