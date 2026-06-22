@@ -21,12 +21,6 @@ namespace fs = std::filesystem;
 
 
 int main(int argc, char *argv[]){
-    if(argc<3){
-        std::cerr<< "Usage:\n" 
-                    <<" cblocker encrypt <file>\n" 
-                    <<" cblocker decrypt <file>\n";
-        return 1;
-    }
 
     crypto cr;
 

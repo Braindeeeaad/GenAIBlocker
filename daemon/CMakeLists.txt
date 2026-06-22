@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
 project(cblocker CXX)
 
-add_executable(${PROJECT_NAME} main.cpp)
-
+add_executable(daemon main.cpp)
+add_executable(${PROJECT_NAME} client.cpp)
+add_library(network_lib network_channel.cpp)
 #  force link the global cryptopp library
-target_link_libraries(${PROJECT_NAME} PRIVATE cryptopp)
-
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(daemon PRIVATE ${CMAKE_SOURCE_DIR})
 # fetch and install libsodium
 include(FetchContent)
 FetchContent_Declare(
@@ -16,4 +17,5 @@ FetchContent_Declare(
 set(SODIUM_DISABLE_TESTS ON CACHE INTERNAL "")
 FetchContent_MakeAvailable(Sodium)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE sodium)
+target_link_libraries(daemon PRIVATE sodium network_lib cryptopp)
+target_link_libraries(${PROJECT_NAME} PRIVATE network_lib)

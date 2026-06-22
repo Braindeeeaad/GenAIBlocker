@@ -19,6 +19,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
+    
     NetworkRequestChannel channel("", 12345, NetworkRequestChannel::CLIENT_SIDE);
     channel.accept_connection();
     int i = 1;
@@ -30,13 +31,13 @@ int main(int argc, char *argv[]){
             std::cerr<<"Error: file not found" << filepath << "\n";
             return 1;
         }
-
+        fs::path full_path = fs::absolute(filepath);
         if(command=="encrypt"){
-            Request req("encrypt", filepath,0,0);
+            Request req("encrypt", full_path.string(),0,0);
             channel.send_request(req);
         }
         else if(command=="decrypt"){
-            Request req("decrypt", filepath,0,0);
+            Request req("decrypt", full_path.string(),0,0);
             channel.send_request(req);
         }
 

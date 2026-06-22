@@ -90,7 +90,8 @@ private:
     std::string log_file_path = this->name + ".log";
     if ((log_file = fopen(log_file_path.data(), "a")) == NULL)
       return false;
-
+    if ((log_file = freopen(nullptr, "w",log_file)) == NULL)
+      return false;
     assert(log_file != NULL);
     setlinebuf(log_file);
     setlinebuf(stdout);
@@ -125,6 +126,38 @@ private:
     }
     return 0;
   }
+  
+  static daemon* instance; // Static tracker slot
+
+  bool perform_cleanup() {
+      std::string pid_file = (this->name + ".pid");
+      if (remove(pid_file.data()) != 0) {
+          fprintf(stderr, "Failed to remove pid file\n");
+          return false;
+      }
+      return true;
+  }
+  static void signal_handler(int signum) {
+      fprintf(stderr, "Received signal %d, performing cleanup and exiting\n", signum);
+      if (instance != nullptr) {
+          if (!instance->perform_cleanup()) {
+              fprintf(stderr, "Cleanup failed, exiting with error\n");
+              exit(1);
+          }
+      }
+      exit(0);
+  }
+  void setup_signal_handlers() {
+        struct sigaction sa;
+        sa.sa_handler = signal_handler; 
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+
+        sigaction(SIGTERM, &sa, nullptr);
+        sigaction(SIGINT,  &sa, nullptr);
+        sigaction(SIGQUIT, &sa, nullptr);
+        sigaction(SIGTSTP, &sa, nullptr);
+    }
 
 public:
   void daemonize() {
@@ -141,11 +174,15 @@ public:
 
     // daemon is now detached from terminal
     this->init_service();
+    this->setup_signal_handlers();
   }
 
-  daemon(const std::string &name) : name(name) {};
+  daemon(const std::string &name) : name(name){instance = this;};
 
 private:
   std::string name;
 };
 } // namespace daemonpp
+
+
+daemonpp::daemon* daemonpp::daemon::instance = nullptr;
