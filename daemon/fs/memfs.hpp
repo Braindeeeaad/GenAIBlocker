@@ -11,10 +11,6 @@ namespace fs = std::filesystem;
 /*
     TODO LIST: 
 
-    1. Make constructors for MemFsDirectory and MemFsFile
-       the constructor for the MemFsDirectory needs to recursively initalize 
-       all of the dir_entries under the actual file system. The constructor for the MemFsFile 
-       should open the current file and copy its contents into memory via string 
     
     2. Make a readfile command for MemFsFile which can provide a hybrid string view based off of the 
        window size and line num provided to as arguments 
@@ -24,15 +20,23 @@ namespace fs = std::filesystem;
 
     4. Make a save function that rewrites the current directory/file back into its correct file.
 
-    5. Make a deleteEntry function thats a linear search through the dir_entries and deletes the matching file
+
+    6. Need to turn cryptopp functions from a stream into another cryptographic alg
 
 */
 
 
 class MemFsDirEntry {
+private: 
+    std::filesystem::path filepath;
 public:
+    MemFsDirEntry(const std::filesystem::path& path) : filepath(path) {}
+
+    std::filesystem::path path() const {return filepath;}
+
     virtual void save() = 0;
     virtual void load() = 0; 
+    virtual bool is_directory() = 0;
     virtual ~MemFsDirEntry() = default;
 };
 
@@ -44,6 +48,7 @@ public:
     MemFsDirectory(const fs::path& filepath);
     void save() override;
     void load() override; 
+    bool is_directory() override; 
 
     void addEntry(std::unique_ptr<MemFsDirEntry> entry);
     void deleteEntry(const fs::path& filepath);
@@ -61,7 +66,9 @@ public:
     
     void save() override;
     void load() override; 
-    
+    bool is_directory() override;
+
+
     void readFile();
     void writeLine();
 };
