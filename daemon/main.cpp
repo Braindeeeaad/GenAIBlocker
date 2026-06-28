@@ -41,10 +41,12 @@ int main(int argc, char *argv[]) {
         
         
         Request req = channel.receive_request();
-        std::string command = req.command;
+        const std::string command = req.command;
         std::string filepath = req.filepath;
         
         Response resp(false, "", "Unknown Command");
+
+
 
         if(command == "encrypt") {
             cr.encrypt_directory(filepath);
@@ -62,7 +64,9 @@ int main(int argc, char *argv[]) {
                 resp = Response(false, "Error", e.what());
             }
         }
-        
+        else if(command == "init"){
+            
+        }
         channel.send_response(resp);
     
     }

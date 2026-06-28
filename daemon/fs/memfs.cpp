@@ -4,6 +4,7 @@
 #include <iostream> 
 #include <fstream>
 #include <sstream>
+#include "../crypto.cpp"
 
 MemFsDirectory::MemFsDirectory(const fs::path& filepath) 
     : MemFsDirEntry(filepath) {
@@ -24,7 +25,8 @@ void MemFsDirectory::save() {
         if(!entry->is_directory()){
             entry->save(); 
         }
-        //TODO: finish save operation for directories 
+        //TODO: finish save operation for directories
+        //note doesnt actually fix the issue 
         fs::create_directories(entry->path());
         entry->save();
     }
@@ -76,6 +78,7 @@ void MemFsFile::load(){
         return; 
     }
 
+    //crypto cr();
     std::string line; 
     this->encrypt_text = "";
     while(std::getline(file,line)){
