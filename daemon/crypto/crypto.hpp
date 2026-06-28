@@ -28,7 +28,7 @@ namespace crypto{
         size_t mssg_len;
     };
 
-    void generateKey(unsigned char &key);
+    void generateKey(unsigned char *key);
     std::string stringToHex(const std::string &input); 
     std::string hexToString(const std::string &input); 
     std::string hexEncodeCipherPairLen(const char *input); 

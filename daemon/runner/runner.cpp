@@ -6,13 +6,22 @@
 Project::Project(const fs::path& filepath): projectPath(filepath){
     this->dotFolderPath = projectPath / ".cblocker"; 
     this->name = projectPath.filename();
+    this->loadDotFolder();
 }
 
 
 void Project::makeDotFolder(){
     assert(!fs::create_directories(dotFolderPath));
-    
-
+    //generate key
+    unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
+    crypto::generateKey(key);
+    //write key into file
+    fs::path keyfile = dotFolderPath / "key";
+    std::ofstream fout(keyfile.string());
+    fout.write((char *)key,crypto_secretstream_xchacha20poly1305_KEYBYTES);
+    if(!fout)
+        std::cerr<<"Error writing keyfile"<<std::endl;
+    fout.close();
 }
 
 void Project::loadDotFolder(){
@@ -32,7 +41,5 @@ void Project::loadDotFolder(){
     }
 
     fin.close();
-
-
-
+    
 }

@@ -1,7 +1,7 @@
 #include "crypto.hpp"
 
-void crypto::generateKey(unsigned char &key){
-    crypto_secretstream_xchacha20poly1305_keygen(&key);
+void crypto::generateKey(unsigned char *key){
+    crypto_secretstream_xchacha20poly1305_keygen(key);
 }
 
 std::string crypto::stringToHex(const std::string &input) {
