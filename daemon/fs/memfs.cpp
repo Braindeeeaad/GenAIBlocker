@@ -4,7 +4,7 @@
 #include <iostream> 
 #include <fstream>
 #include <sstream>
-#include "../crypto.cpp"
+#include "../crypto/crypto.hpp"
 
 MemFsDirectory::MemFsDirectory(const fs::path& filepath) 
     : MemFsDirEntry(filepath) {
@@ -61,7 +61,7 @@ void MemFsDirectory::deleteEntry(const fs::path& fpath) {
 
 MemFsFile::MemFsFile(const fs::path& filepath) 
     : MemFsDirEntry(filepath) {
-        
+    
 }
 
 void MemFsFile::save() {

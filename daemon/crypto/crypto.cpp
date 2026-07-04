@@ -1,85 +1,92 @@
+// crypto.cpp
 #include "crypto.hpp"
+#include <stdexcept>
 
-void crypto::generateKey(unsigned char *key){
-    crypto_secretstream_xchacha20poly1305_keygen(key);
+void crypto::generateKey(unsigned char* key) {
+    crypto_secretbox_keygen(key);
 }
 
-std::string crypto::stringToHex(const std::string &input) {
-    std::string output;
-    CryptoPP::StringSource(
-        input, true,
-        new CryptoPP::HexEncoder(new CryptoPP::StringSink(output)));
-    return output;
-  }
-
-std::string crypto::hexToString(const std::string &input) {
-    std::string output;
-    CryptoPP::StringSource(
-        input, true,
-        new CryptoPP::HexDecoder(new CryptoPP::StringSink(output)));
-    return output;
-  }
-
-
-std::string crypto::hexEncodeCipherPairLen(const char *input) {
-    std::string input_str(input, input + sizeof(cipher_pair_len));
-    return stringToHex(input_str);
-}
-  //
-  // Encryption
-  //
-
-std::string crypto::encrypt_mssg(std::string message, size_t line_num,
-                         crypto_secretstream_xchacha20poly1305_state &state) {
-  size_t message_len = message.size();
-  // unsigned char ciphertext[message_len + crypto_aead_aegis256_ABYTES];
-  std::vector<unsigned char> ciphertext(
-      message_len + crypto_secretstream_xchacha20poly1305_ABYTES);
-  unsigned long long ciphertext_len;
-  // Getting nonce for current line
-  const unsigned char *ad_ptr = (const unsigned char *)&line_num;
-  unsigned long long ad_len = sizeof(line_num);
-  // Running encryption and getting cypher
-  if (crypto_secretstream_xchacha20poly1305_push(
-          &state, ciphertext.data(), &ciphertext_len, // Output ciphertext
-          (const unsigned char *)message.c_str(),
-          message_len,    // Input plaintext line
-          ad_ptr, ad_len, // line number as metadata
-          0               // Tag (0 for normal chunk)
-          ) != 0) {
-    std::cerr << "Error when encrypting mssg";
-  }
-  ciphertext.resize(ciphertext_len);
-  std::string cipher_string(ciphertext.begin(), ciphertext.end());
-  return stringToHex(cipher_string);
-}
-  
-
-
-  //
-  // Decryption
-  //
-
-std::string crypto::decrypt_mssg(std::string cipher, size_t line_num,
-                    crypto_secretstream_xchacha20poly1305_state &state,
-                    cipher_pair_len pair_len) {
-  // Turning the hexcode string back to encrypted string
-  cipher = hexToString(cipher);
-  std::vector<unsigned char> message(pair_len.mssg_len +
-                                crypto_secretstream_xchacha20poly1305_ABYTES);
-  unsigned long long message_len;
-  // Getting nonce for current line
-  const unsigned char *ad_ptr = (const unsigned char *)&line_num;
-  unsigned long long ad_len = sizeof(line_num);
-  // Running decryption and getting original mssg
-  if (crypto_secretstream_xchacha20poly1305_pull(
-          &state, (unsigned char *)message.data(), &message_len, 0,
-          (unsigned char *)cipher.data(), cipher.size(), ad_ptr,
-          ad_len) != 0) {
-    std::cerr << "Error when encrypting mssg";
-  }
-  message.resize(message_len);
-  std::string output(message.begin(), message.end());
-  return output;
+std::string crypto::binToHex(const std::string& input) {
+    std::string hex(input.size() * 2 + 1, '\0');
+    sodium_bin2hex(
+        hex.data(), hex.size(),
+        reinterpret_cast<const unsigned char*>(input.data()),
+        input.size()
+    );
+    hex.resize(input.size() * 2);
+    return hex;
 }
 
+std::string crypto::hexToBin(const std::string& input) {
+    std::string bin(input.size() / 2, '\0');
+    size_t bin_len;
+    if (sodium_hex2bin(
+            reinterpret_cast<unsigned char*>(bin.data()), bin.size(),
+            input.data(), input.size(),
+            nullptr, &bin_len, nullptr
+        ) != 0) {
+        throw std::runtime_error("hexToBin: invalid hex input");
+    }
+    bin.resize(bin_len);
+    return bin;
+}
+
+std::string crypto::encryptLine(
+    const std::string& plaintext,
+    const unsigned char* key
+) {
+    // generate fresh random nonce for this line
+    unsigned char nonce[NONCE_SIZE];
+    randombytes_buf(nonce, NONCE_SIZE);
+
+    // encrypt
+    std::vector<unsigned char> ciphertext(MAC_SIZE + plaintext.size());
+    crypto_secretbox_easy(
+        ciphertext.data(),
+        reinterpret_cast<const unsigned char*>(plaintext.data()),
+        plaintext.size(),
+        nonce,
+        key
+    );
+
+    // prepend nonce to ciphertext before hex encoding
+    // stored format: hex(nonce || mac || ciphertext)
+    std::string combined;
+    combined.append(reinterpret_cast<char*>(nonce), NONCE_SIZE);
+    combined.append(reinterpret_cast<char*>(ciphertext.data()), ciphertext.size());
+
+    return binToHex(combined);
+}
+
+std::string crypto::decryptLine(
+    const std::string& ciphertext_hex,
+    const unsigned char* key
+) {
+    std::string combined = hexToBin(ciphertext_hex);
+
+    // minimum size = nonce + mac
+    if (combined.size() < NONCE_SIZE + MAC_SIZE) {
+        throw std::runtime_error("decryptLine: input too short");
+    }
+
+    // split nonce from the rest
+    const unsigned char* nonce = 
+        reinterpret_cast<const unsigned char*>(combined.data());
+    const unsigned char* ciphertext = 
+        reinterpret_cast<const unsigned char*>(combined.data() + NONCE_SIZE);
+    size_t ciphertext_len = combined.size() - NONCE_SIZE;
+
+    std::vector<unsigned char> plaintext(ciphertext_len - MAC_SIZE);
+
+    if (crypto_secretbox_open_easy(
+            plaintext.data(),
+            ciphertext,
+            ciphertext_len,
+            nonce,
+            key
+        ) != 0) {
+        throw std::runtime_error("decryptLine: authentication failed");
+    }
+
+    return std::string(plaintext.begin(), plaintext.end());
+}

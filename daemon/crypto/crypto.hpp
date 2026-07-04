@@ -1,41 +1,29 @@
-
-#include <cryptopp/filters.h>
-#include <cryptopp/hex.h>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
+// crypto.hpp
+#pragma once
 #include <sodium.h>
 #include <string>
 #include <vector>
-#define MESSAGE (const unsigned char *)"test"
-#define MESSAGE_LEN 4
-#define ADDITIONAL_DATA (const unsigned char *)"123456"
-#define ADDITIONAL_DATA_LEN 6
-#define HEADER_LEN crypto_secretstream_xchacha20poly1305_HEADERBYTES + 1
-#define PAIR_LEN_DELIMITER ":"
 
-using path = std::filesystem::path;
-using recursive_directory_iterator =
-    std::filesystem::recursive_directory_iterator;
+class crypto {
+public:
 
+    static constexpr size_t KEY_SIZE   = crypto_secretbox_KEYBYTES;
+    static constexpr size_t NONCE_SIZE = crypto_secretbox_NONCEBYTES;
+    static constexpr size_t MAC_SIZE   = crypto_secretbox_MACBYTES;
 
+    static void generateKey(unsigned char* key);
 
-namespace crypto{
-    
-    struct cipher_pair_len {
-        size_t cipher_len; 
-        size_t mssg_len;
-    };
+    static std::string binToHex(const std::string& input);
+    static std::string hexToBin(const std::string& input);
 
-    void generateKey(unsigned char *key);
-    std::string stringToHex(const std::string &input); 
-    std::string hexToString(const std::string &input); 
-    std::string hexEncodeCipherPairLen(const char *input); 
+    static std::string encryptLine(
+        const std::string& plaintext,
+        const unsigned char* key
+    );
 
-    std::string encrypt_mssg(std::string message, size_t line_num, 
-                    crypto_secretstream_xchacha20poly1305_state &state); 
-    std::string decrypt_mssg(std::string cipher, size_t line_num,
-                    crypto_secretstream_xchacha20poly1305_state &state,
-                    cipher_pair_len pair_len);
-}
+    static std::string decryptLine(
+        const std::string& ciphertext_hex,
+        const unsigned char* key
+    );
+
+};
