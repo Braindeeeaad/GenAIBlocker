@@ -128,6 +128,28 @@ std::string MemFsFile::readFile(size_t line_num,size_t window_size) {
     return out_string.str();
 }
 
-void MemFsFile::writeLine() {
+void MemFsFile::writeLine(size_t line_num, std::string new_line) {
+    std::string encrypted_line = crypto::encryptLine(new_line, (const unsigned char *)(key.get()));
+    size_t enc_idx = encrypt_offset.at(line_num);
+    size_t plain_idx = plain_offset.at(line_num);
+        
+    //erasing old line
+    if(line_num == encrypt_offset.size()-1){
+        std::string last_encrypt_line = encrypt_text.substr(enc_idx);
+        std::string last_plain_line = plain_text.substr(plain_idx);
+        encrypt_text.erase(enc_idx,last_encrypt_line.size());
+        plain_text.erase(plain_idx,last_plain_line.size());
 
+    }
+    else{
+        size_t next_enc_idx = encrypt_offset.at(line_num+1);
+        size_t next_plain_idx = plain_offset.at(line_num+1);
+        encrypt_text.erase(enc_idx,next_enc_idx);
+        plain_text.erase(plain_idx,next_plain_idx);
+    }
+
+    encrypt_text.insert(enc_idx,encrypted_line+"\n");
+    plain_text.insert(plain_idx,new_line+"\n");
+    calculate_offset(this->plain_offset, this->plain_text);
+    calculate_offset(this->encrypt_offset, this->encrypt_text);
 }

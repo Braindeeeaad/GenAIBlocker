@@ -70,5 +70,5 @@ public:
 
     
     std::string readFile(size_t line,size_t window_size=0);
-    void writeLine();
+    void writeLine(size_t line_num, std::string new_line);
 };
