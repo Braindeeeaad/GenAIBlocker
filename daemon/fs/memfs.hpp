@@ -3,7 +3,6 @@
 #include <vector>
 #include <memory>
 #include <filesystem>
-#define WINDOW_SIZE 10
 
 
 namespace fs = std::filesystem;
@@ -70,6 +69,6 @@ public:
     bool is_directory() override;
 
     
-    std::string readFile(size_t line);
+    std::string readFile(size_t line,size_t window_size=0);
     void writeLine();
 };

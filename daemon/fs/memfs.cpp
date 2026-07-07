@@ -1,9 +1,11 @@
 #include "memfs.hpp"
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <iostream> 
 #include <fstream>
 #include <sstream>
+#include <cassert>
 #include "../crypto/crypto.hpp"
 
 MemFsDirectory::MemFsDirectory(const fs::path& filepath, std::shared_ptr<char> key) 
@@ -106,8 +108,24 @@ void MemFsFile::load(){
 
 
 
-std::string MemFsFile::readFile(size_t line_num) {
+std::string MemFsFile::readFile(size_t line_num,size_t window_size) {
+    assert(this->encrypt_offset.size()==this->plain_offset.size());
+    std::stringstream out_string;
+    for(size_t i = 0; i<plain_offset.size(); i++){
+        std::vector<off_t> curr_offset = (i>=line_num-window_size && i<=line_num+window_size) ? plain_offset : encrypt_offset;
+        std::string curr_string = (i>=line_num-window_size && i<=line_num+window_size) ? plain_text : encrypt_text;
+        if(curr_offset.size()-1==i){
+            size_t idx = curr_offset.at(i);
+            out_string << curr_string.substr(idx);
+            continue;
+        }
+        size_t idx = curr_offset.at(i);
+        size_t next_idx = curr_offset.at(i+1);
+        std::string sub_string = curr_string.substr(idx, next_idx-idx);
+        out_string << sub_string << std::endl;
     
+    }
+    return out_string.str();
 }
 
 void MemFsFile::writeLine() {
