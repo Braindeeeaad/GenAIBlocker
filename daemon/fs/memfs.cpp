@@ -70,6 +70,18 @@ void MemFsFile::save() {
 
 }
 
+
+void calculate_offset(std::vector<off_t> offset, std::string file){
+    offset.clear(); 
+    std::string curr_substr = file;
+    offset.push_back(0);
+    while(curr_substr.find('\n')>-1){
+        size_t idx = curr_substr.find('\n');
+        offset.insert(offset.begin(), idx+1);
+        curr_substr = curr_substr.substr(idx+1);
+    }
+}
+
 void MemFsFile::load(){
     std::ifstream file(filepath.generic_string());
     if(!file.is_open()){
@@ -87,20 +99,15 @@ void MemFsFile::load(){
         std::string decrypt_line = crypto::decryptLine(line,(const unsigned char *)(key.get()));
         this->plain_text = decrypt_line;
     }
-
+    calculate_offset(this->plain_offset, this->plain_text);
+    calculate_offset(this->encrypt_offset, this->encrypt_text);
     file.close();
 }
 
+
+
 std::string MemFsFile::readFile(size_t line_num) {
-    std::ifstream file(filepath.generic_string());
-    if(!file.is_open()){
-        std::cerr << "Failed to open file for reading" << filepath<<std::endl;
-    }
-    std::string output = "";
-    std::string line;
-    while(std::getline(file,line)){
-        
-    }
+    
 }
 
 void MemFsFile::writeLine() {

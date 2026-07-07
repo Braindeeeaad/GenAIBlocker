@@ -69,7 +69,7 @@ public:
     void load() override; 
     bool is_directory() override;
 
-
+    
     std::string readFile(size_t line);
     void writeLine();
 };
