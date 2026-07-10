@@ -8,7 +8,7 @@
 #include <cassert>
 #include "../crypto/crypto.hpp"
 
-MemFsDirectory::MemFsDirectory(const fs::path& filepath, std::shared_ptr<char> key) 
+MemFsDirectory::MemFsDirectory(const fs::path& filepath, std::shared_ptr<char[]> key) 
     : MemFsDirEntry(filepath,key) {
     for(auto& entry : fs::directory_iterator(filepath)){
         if(entry.is_directory()){
@@ -61,7 +61,7 @@ void MemFsDirectory::deleteEntry(const fs::path& fpath) {
     }
 }
 
-MemFsFile::MemFsFile(const fs::path& filepath, std::shared_ptr<char> key) 
+MemFsFile::MemFsFile(const fs::path& filepath, std::shared_ptr<char []> key) 
     : MemFsDirEntry(filepath, key) {
     
 }
@@ -98,7 +98,7 @@ void MemFsFile::load(){
     while(std::getline(file,line)){
         this->encrypt_text+=line+"\n";
         //TODO: include line by line decryption code here
-        std::string decrypt_line = crypto::decryptLine(line,(const unsigned char *)(key.get()));
+        std::string decrypt_line = crypto::decryptLine(line,(const unsigned char*)key.get());
         this->plain_text = decrypt_line;
     }
     calculate_offset(this->plain_offset, this->plain_text);

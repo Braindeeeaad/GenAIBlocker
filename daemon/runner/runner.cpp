@@ -1,12 +1,19 @@
 #include "runner.hpp"
+#include <cstring>
 #include <filesystem>
 #include <assert.h>
 //Constructor 
 
-Project::Project(const fs::path& filepath): projectPath(filepath){
+Project::Project(const fs::path& filepath){
+    this->projectPath = filepath;
     this->dotFolderPath = projectPath / ".cblocker"; 
     this->name = projectPath.filename();
     this->loadDotFolder();
+    //making key a shared pntr
+    std::shared_ptr<char[]> sharedKey(new char[crypto_secretstream_xchacha20poly1305_KEYBYTES]);
+    memcpy(sharedKey.get(), this->key, crypto_secretstream_xchacha20poly1305_KEYBYTES);
+    //initalizing memfs for current project
+    this->project = std::make_unique<MemFsDirectory>(filepath,sharedKey);
 }
 
 

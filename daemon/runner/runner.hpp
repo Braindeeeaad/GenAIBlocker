@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <iostream> 
 #include <fstream>
+#include <memory>
+
 /*
 
     1. Need to check if a .cblocker file exists within current directory 
@@ -24,6 +26,7 @@ class Project{
         std::string name;
         fs::path projectPath;
         fs::path dotFolderPath; 
+        std::unique_ptr<MemFsDirectory> project; 
 
 
 

@@ -27,10 +27,10 @@ class MemFsDirEntry {
 private: 
     std::filesystem::path filepath;
 protected: 
-    std::shared_ptr<char> key;
+    std::shared_ptr<char[]> key;
 
 public:
-    MemFsDirEntry(const std::filesystem::path& path,std::shared_ptr<char> key) : filepath(path), key(key) {}
+    MemFsDirEntry(const std::filesystem::path& path,std::shared_ptr<char[]> key) : filepath(path), key(key) {}
 
     std::filesystem::path path() const {return filepath;}
 
@@ -45,7 +45,7 @@ private:
     fs::path filepath;
     std::vector<std::unique_ptr<MemFsDirEntry>> entries;
 public:
-    MemFsDirectory(const fs::path& filepath,std::shared_ptr<char> key);
+    MemFsDirectory(const fs::path& filepath,std::shared_ptr<char[]> key);
     void save() override;
     void load() override; 
     bool is_directory() override; 
@@ -62,7 +62,7 @@ private:
     std::vector<off_t> plain_offset;
     std::vector<off_t> encrypt_offset;
 public:
-    MemFsFile(const fs::path& filepath, std::shared_ptr<char> key);
+    MemFsFile(const fs::path& filepath, std::shared_ptr<char[]> key);
     
     void save() override;
     void load() override; 
