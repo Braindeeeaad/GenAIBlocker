@@ -1,7 +1,9 @@
-#include "runner.hpp"
+#include "project.hpp"
 #include <cstring>
 #include <filesystem>
 #include <assert.h>
+#include <fstream>
+#include <string>
 //Constructor 
 
 Project::Project(const fs::path& filepath){
@@ -14,6 +16,19 @@ Project::Project(const fs::path& filepath){
     memcpy(sharedKey.get(), this->key, crypto_secretstream_xchacha20poly1305_KEYBYTES);
     //initalizing memfs for current project
     this->project = std::make_unique<MemFsDirectory>(filepath,sharedKey);
+}
+
+
+void Project::readIgnoreFile(){
+    fs::path ignoreFilePath = projectPath / ".cblockerignore";
+    if(!fs::exists(ignoreFilePath))
+        return;
+
+    std::ifstream fin(ignoreFilePath.string());
+    std::string line; 
+    while(std::getline(fin,line)){
+        ignoredFiles.push_back(projectPath/line);
+    }
 }
 
 

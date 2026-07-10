@@ -5,6 +5,7 @@
 #include <iostream> 
 #include <fstream>
 #include <memory>
+#include <vector>
 
 /*
 
@@ -28,6 +29,8 @@ class Project{
         std::string name;
         fs::path projectPath;
         fs::path dotFolderPath; 
+
+        std::vector<fs::path> ignoredFiles;
         std::unique_ptr<MemFsDirectory> project; 
 
 
@@ -36,20 +39,8 @@ class Project{
         Project(const fs::path& filepath);
         
     private: 
+        void init();
+        void readIgnoreFile();
         void makeDotFolder();
         void loadDotFolder();
-};
-
-
-class Runner{
-
-    private: 
-        
-
-    
-    public: 
-
-
-
-
 };
