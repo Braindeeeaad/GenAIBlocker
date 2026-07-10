@@ -23,13 +23,38 @@ MemFsDirectory::MemFsDirectory(const fs::path& filepath, std::shared_ptr<char[]>
 }
 
 void MemFsDirectory::save() {
-    for(auto& entry: entries){
-        if(!entry->is_directory()){
-            entry->save(); 
+    /*
+        Runs under assumption that the current directory has already been created 
+    
+    */
+    std::vector<fs::path> new_dirs, rm_dirs;
+    for(auto& mem_entry: entries){
+        bool match = false;
+        for(auto& fs_entry: fs::directory_iterator(filepath)){
+            if(mem_entry->path() == fs_entry)
+                match = true;
         }
-        //TODO: finish save operation for directories
-        //note doesnt actually fix the issue 
-        fs::create_directories(entry->path());
+        if(!match && mem_entry->is_directory()){
+            new_dirs.push_back(mem_entry->path());
+        }
+    }
+    for(auto& fs_entry: fs::directory_iterator(filepath)){
+        bool match = true;
+        for(auto& mem_entry: entries){
+            if(mem_entry->path() == fs_entry)
+                match = false;
+        }
+        if(!match && fs_entry.is_directory()){
+            rm_dirs.push_back(fs_entry);
+        }
+    }
+    for(auto& entry: new_dirs){
+        fs::create_directories(entry);
+    }
+    for(auto& entry: rm_dirs){
+        fs::remove(entry);
+    }
+    for(auto& entry: entries){
         entry->save();
     }
 }
