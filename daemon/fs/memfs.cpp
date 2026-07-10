@@ -42,7 +42,26 @@ void MemFsDirectory::load() {
 }
 
 
+bool MemFsDirectory::find(fs::path fp){
+    fs::path curr_path = fp; 
+    while(curr_path.has_parent_path()){
+        if(curr_path.parent_path()==this->filepath){
+            break;
+        }
+    }
+    if(curr_path.parent_path()!=this->filepath){
+        return false; 
+    }
 
+    for(auto& entry: entries){
+        if(entry->path() == fp)
+            return true;
+        if(entry->path() == curr_path){ 
+            return entry->find(fp);
+        }
+    }
+    return false;
+}
 
 void MemFsDirectory::addEntry(std::unique_ptr<MemFsDirEntry> entry) {
     entries.push_back(std::move(entry));
@@ -60,6 +79,15 @@ void MemFsDirectory::deleteEntry(const fs::path& fpath) {
         entries.erase(entries.begin() + idx);
     }
 }
+
+
+/*
+
+    MemFsFile
+
+
+*/
+
 
 MemFsFile::MemFsFile(const fs::path& filepath, std::shared_ptr<char []> key) 
     : MemFsDirEntry(filepath, key) {
@@ -106,7 +134,7 @@ void MemFsFile::load(){
     file.close();
 }
 
-
+bool MemFsFile::find(fs::path filep){return filep==this->filepath;}
 
 std::string MemFsFile::readFile(size_t line_num,size_t window_size) {
     assert(this->encrypt_offset.size()==this->plain_offset.size());

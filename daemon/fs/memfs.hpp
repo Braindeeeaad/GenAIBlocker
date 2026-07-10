@@ -37,6 +37,8 @@ public:
     virtual void save() = 0;
     virtual void load() = 0; 
     virtual bool is_directory() = 0;
+    virtual bool find(fs::path filepath);
+
     virtual ~MemFsDirEntry() = default;
 };
 
@@ -49,7 +51,8 @@ public:
     void save() override;
     void load() override; 
     bool is_directory() override; 
-
+    bool find(fs::path filepath) override;
+    
     void addEntry(std::unique_ptr<MemFsDirEntry> entry);
     void deleteEntry(const fs::path& filepath);
 };
@@ -67,8 +70,10 @@ public:
     void save() override;
     void load() override; 
     bool is_directory() override;
-
+    bool find(fs::path filepath) override;
     
+
+
     std::string readFile(size_t line,size_t window_size=0);
     void writeLine(size_t line_num, std::string new_line);
 };
