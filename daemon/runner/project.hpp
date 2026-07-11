@@ -12,7 +12,7 @@
 
     1.X Need to check if a .cblocker file exists within current directory 
     2.X Need to make .cblocker file if it doesn't exist 
-    3. Encrypt all of the files that are not in .cblockerignore
+    3.X Encrypt all of the files that are not in .cblockerignore
        Do I need a way to check if files/project has been already encrypted 
        I don't think a simple .cblocker check would work
     4.X Need to make make a file in .cblocker that holds our generated key

@@ -1,4 +1,4 @@
-#include "network_channel.h"
+#include "network_channel.hpp"
 #include <cstdint>
 #include <netinet/in.h>
 #include <arpa/inet.h>
