@@ -6,6 +6,7 @@
 #include <fstream>
 #include <memory>
 #include <vector>
+#include <unordered_set>
 
 /*
 
@@ -30,7 +31,7 @@ class Project{
         fs::path projectPath;
         fs::path dotFolderPath; 
 
-        std::vector<fs::path> ignoredFiles;
+        std::unordered_set<fs::path> ignoredFiles;
         std::unique_ptr<MemFsDirectory> project; 
 
 

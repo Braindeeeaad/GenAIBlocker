@@ -15,8 +15,22 @@ Project::Project(const fs::path& filepath){
     std::shared_ptr<char[]> sharedKey(new char[crypto_secretstream_xchacha20poly1305_KEYBYTES]);
     memcpy(sharedKey.get(), this->key, crypto_secretstream_xchacha20poly1305_KEYBYTES);
     //initalizing memfs for current project
-    this->project = std::make_unique<MemFsDirectory>(filepath,sharedKey);
+    this->project = std::make_unique<MemFsDirectory>(
+        fs::weakly_canonical(filepath),sharedKey,ignoredFiles
+    );
 }
+
+
+
+void Project::init(){
+    /*
+        1. Read ignore files, read/make dot folder 
+        2. load files into memfs, 
+
+    */
+
+}
+
 
 
 void Project::readIgnoreFile(){
@@ -27,7 +41,7 @@ void Project::readIgnoreFile(){
     std::ifstream fin(ignoreFilePath.string());
     std::string line; 
     while(std::getline(fin,line)){
-        ignoredFiles.push_back(projectPath/line);
+        ignoredFiles.insert(fs::weakly_canonical(projectPath/line));
     }
 }
 

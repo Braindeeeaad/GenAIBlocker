@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 #include <filesystem>
-
+#include <unordered_set>
 
 namespace fs = std::filesystem;
 
@@ -28,14 +28,17 @@ private:
     std::filesystem::path filepath;
 protected: 
     std::shared_ptr<char[]> key;
+    bool ignored;
 
 public:
-    MemFsDirEntry(const std::filesystem::path& path,std::shared_ptr<char[]> key) : filepath(path), key(key) {}
+    MemFsDirEntry(const std::filesystem::path& path,
+        std::shared_ptr<char[]> key,
+        bool ignore=false): filepath(path),key(key),ignored(ignore){}
 
     std::filesystem::path path() const {return filepath;}
 
     virtual void save() = 0;
-    virtual void load() = 0; 
+    virtual void load(bool firstTime) = 0; 
     virtual bool is_directory() = 0;
     virtual bool find(fs::path filepath);
 
@@ -47,9 +50,15 @@ private:
     fs::path filepath;
     std::vector<std::unique_ptr<MemFsDirEntry>> entries;
 public:
-    MemFsDirectory(const fs::path& filepath,std::shared_ptr<char[]> key);
+
+    MemFsDirectory(const std::filesystem::path& path,
+        std::shared_ptr<char[]> key,
+        const std::unordered_set<fs::path>& ignoreSet,
+        bool ignore=false);
+
+
     void save() override;
-    void load() override; 
+    void load(bool firstTime) override; 
     bool is_directory() override; 
     bool find(fs::path filepath) override;
     
@@ -65,10 +74,10 @@ private:
     std::vector<off_t> plain_offset;
     std::vector<off_t> encrypt_offset;
 public:
-    MemFsFile(const fs::path& filepath, std::shared_ptr<char[]> key);
+    MemFsFile(const fs::path& filepath, std::shared_ptr<char[]> key,bool ignore);
     
     void save() override;
-    void load() override; 
+    void load(bool firstTime) override; 
     bool is_directory() override;
     bool find(fs::path filepath) override;
     

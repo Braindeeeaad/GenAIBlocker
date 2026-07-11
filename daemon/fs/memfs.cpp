@@ -6,17 +6,19 @@
 #include <fstream>
 #include <sstream>
 #include <cassert>
+#include <unordered_set>
 #include "../crypto/crypto.hpp"
 
-MemFsDirectory::MemFsDirectory(const fs::path& filepath, std::shared_ptr<char[]> key) 
-    : MemFsDirEntry(filepath,key) {
+MemFsDirectory::MemFsDirectory(const fs::path& filepath, std::shared_ptr<char[]> key,const std::unordered_set<fs::path>& ignoreSet,bool ignore) 
+    : MemFsDirEntry(filepath,key,ignore) {
     for(auto& entry : fs::directory_iterator(filepath)){
+        bool childIgnored = ignore || ignoreSet.count(entry.path()) > 0;
         if(entry.is_directory()){
-            auto dir = std::make_unique<MemFsDirectory>(entry.path(),key);    
+            auto dir = std::make_unique<MemFsDirectory>(entry.path(),key,ignoreSet,childIgnored);    
             entries.push_back(std::move(dir));
         }
         else{
-            auto file = std::make_unique<MemFsFile>(entry.path(),key);
+            auto file = std::make_unique<MemFsFile>(entry.path(),key,false);
             entries.push_back(std::move(file));
         }
     }
@@ -60,9 +62,9 @@ void MemFsDirectory::save() {
 }
 
 
-void MemFsDirectory::load() {
+void MemFsDirectory::load(bool firstTime) {
     for(auto& entry: entries){
-        entry->load();
+        entry->load(firstTime);
     }
 }
 
@@ -114,8 +116,8 @@ void MemFsDirectory::deleteEntry(const fs::path& fpath) {
 */
 
 
-MemFsFile::MemFsFile(const fs::path& filepath, std::shared_ptr<char []> key) 
-    : MemFsDirEntry(filepath, key) {
+MemFsFile::MemFsFile(const fs::path& filepath, std::shared_ptr<char []> key,bool ignore) 
+    : MemFsDirEntry(filepath, key, ignore) {
     
 }
 
@@ -137,7 +139,7 @@ void calculate_offset(std::vector<off_t> offset, std::string file){
     }
 }
 
-void MemFsFile::load(){
+void MemFsFile::load(bool firstTime){
     std::ifstream file(filepath.generic_string());
     if(!file.is_open()){
         std::cerr << "Failed to open file "<<filepath<<std::endl;
@@ -149,11 +151,24 @@ void MemFsFile::load(){
     std::string line; 
     this->encrypt_text = "";
     while(std::getline(file,line)){
-        this->encrypt_text+=line+"\n";
+        std::string encrypt_line = line;
+        std::string decrypt_line = line; 
+        if(!firstTime){
+            decrypt_line = crypto::decryptLine(line,(const unsigned char*)key.get());
+        }
+        else{
+            encrypt_line = crypto::encryptLine(line, (const unsigned char *)key.get());
+        }
         //TODO: include line by line decryption code here
-        std::string decrypt_line = crypto::decryptLine(line,(const unsigned char*)key.get());
-        this->plain_text = decrypt_line;
+
+        this->plain_text+= decrypt_line+"\n";
+        this->encrypt_text+= encrypt_line+"\n";
     }
+
+    //kinda dumb way to make sure extra \n isn't included
+    this->plain_text = this->plain_text.substr(0,this->plain_text.size()-1);
+    this->encrypt_text = this->encrypt_text.substr(0,this->encrypt_text.size()-1); 
+
     calculate_offset(this->plain_offset, this->plain_text);
     calculate_offset(this->encrypt_offset, this->encrypt_text);
     file.close();
@@ -164,25 +179,35 @@ bool MemFsFile::find(fs::path filep){return filep==this->filepath;}
 std::string MemFsFile::readFile(size_t line_num,size_t window_size) {
     assert(this->encrypt_offset.size()==this->plain_offset.size());
     std::stringstream out_string;
+    
     for(size_t i = 0; i<plain_offset.size(); i++){
+        
+        //Decides if we will write out encrypted or decrypted line(based on line num and window size)
         std::vector<off_t> curr_offset = (i>=line_num-window_size && i<=line_num+window_size) ? plain_offset : encrypt_offset;
         std::string curr_string = (i>=line_num-window_size && i<=line_num+window_size) ? plain_text : encrypt_text;
+        
+        //writes entire string to stringstream if its the last line(no \n)
         if(curr_offset.size()-1==i){
             size_t idx = curr_offset.at(i);
             out_string << curr_string.substr(idx);
             continue;
         }
+        
         size_t idx = curr_offset.at(i);
         size_t next_idx = curr_offset.at(i+1);
+        
+        //writes string + endl to the stringstream
         std::string sub_string = curr_string.substr(idx, next_idx-idx);
         out_string << sub_string << std::endl;
     
     }
+    //returns string from stringstream
     return out_string.str();
 }
 
 void MemFsFile::writeLine(size_t line_num, std::string new_line) {
-    std::string encrypted_line = crypto::encryptLine(new_line, (const unsigned char *)(key.get()));
+    //If ignored writes the same new_line, if not ignored encrypts the line
+    std::string encrypted_line = (!ignored) ? crypto::encryptLine(new_line, (const unsigned char *)(key.get())) : new_line;
     size_t enc_idx = encrypt_offset.at(line_num);
     size_t plain_idx = plain_offset.at(line_num);
         
