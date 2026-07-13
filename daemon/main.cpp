@@ -1,7 +1,13 @@
 #include "project/project.hpp"
 #include "include/daemon.hpp"
 #include "network/network_channel.hpp"
+#include <cstddef>
+#include <exception>
+#include <filesystem>
 #include <signal.h>
+#include <sodium/crypto_core_ed25519.h>
+#include <unordered_map>
+#include <utility>
 
 namespace fs = std::filesystem;
 
@@ -18,7 +24,18 @@ namespace fs = std::filesystem;
 
 
 */
-
+fs::path find_project_dir(fs::path& filepath){
+    fs::path curr_path = filepath; 
+    while(curr_path.has_parent_path()){
+        fs::path cblocker_path = curr_path / ".cblocker";
+        if(fs::exists(cblocker_path))
+            return curr_path;    
+    }
+    if(fs::exists(curr_path/".cblocker"))
+        return curr_path;
+    
+    return fs::path();
+}
 
 int main(int argc, char *argv[]) {
     crypto cr;
@@ -33,6 +50,8 @@ int main(int argc, char *argv[]) {
 
 
     NetworkRequestChannel listener("", 12345, NetworkRequestChannel::SERVER_SIDE);
+    std::unordered_map<fs::path, Project*> project_registry;
+
 
     while(true) {
         int client_fd = listener.accept_connection();
@@ -42,33 +61,82 @@ int main(int argc, char *argv[]) {
         
         Request req = channel.receive_request();
         const std::string command = req.command;
-        std::string filepath = req.filepath;
+        fs::path filepath = fs::path(req.filepath);
         
+        fs::path project_dir = find_project_dir(filepath);
+
         Response resp(false, "", "Unknown Command");
 
+        //Okay so the project stays in memory for entire daemon process, kinda cooked 
+        //Need some way to close it, i.e make a method to save and clear the proj from mem 
 
+        Project* curr_project = nullptr;
+        auto it = project_registry.find(filepath);
+        if(it != project_registry.end()){
+            curr_project = it->second;
+        }
+        
 
-        if(command == "encrypt") {
-            cr.encrypt_directory(filepath);
-            resp = Response(true, "Success", "Directory encrypted");
+        if(command == "init") {
+            try{
+                if(curr_project)
+                    resp = Response(false, "Fail", "Project already initalized");
+                else{
+                    curr_project = new Project(project_dir);
+                    project_registry.insert(std::pair<fs::path, Project*>(project_dir,curr_project));
+                    resp = Response(true,"Success", "Project initalized");
+                }  
+            } catch(const std::exception& e){
+                 resp = Response(false, "Error initalizing project:", e.what());
+            } 
         }
-        else if(command == "decrypt") {
-            cr.decrypt_directory(filepath);
-            resp = Response(true, "Success", "Directory decrypted");
+        else if(!curr_project){
+            resp = Response(false, "Fail", "Please initalize project");
         }
-        else if(command == "decrypt_window") {
+        else if(command == "mkdir") {
             try {
-                std::string decrypted_text = cr.decrypt_window(filepath, req.line, req.window_size);
-                resp = Response(true, "Success", "Window decrypted", decrypted_text);
+                curr_project->addFile(filepath, true);
+                //std::string decrypted_text = cr.decrypt_window(filepath, req.line, req.window_size);
+                resp = Response(true, "Success", "Directory added");
             } catch (const std::exception& e) {
-                resp = Response(false, "Error", e.what());
+                resp = Response(false, "Error making directory:", e.what());
             }
         }
-        else if(command == "init"){
-            
+        else if(command == "mkfile") {
+            try {
+                curr_project->addFile(filepath, false);
+                //std::string decrypted_text = cr.decrypt_window(filepath, req.line, req.window_size);
+                resp = Response(true, "Success", "File added");
+            } catch (const std::exception& e) {
+                resp = Response(false, "Error making file:", e.what());
+            }
+        }
+        else if(command == "read"){
+            try{
+                std::string outstr = curr_project->readFile(filepath, req.line, req.window_size);
+                resp = Response(true,"Success","File read",outstr);
+            }catch(const std::exception& e){
+                resp = Response(false,"Error reading file:",e.what());
+            }
+        }
+        else if(command == "write_line"){
+            try{
+                bool is_file = curr_project->writeLine(filepath, req.line, req.new_line);
+                if(!is_file)
+                    resp = Response(false,"Fail","can't write to directory");
+                else
+                    resp = Response(true,"Success","Line written");
+            }catch(const std::exception& e){
+                resp = Response(false,"Error writing line",e.what());
+            }
         }
         channel.send_response(resp);
     
+    }
+
+    //deletes all projects in mem registry
+    for(auto pair: project_registry){
+        delete pair.second;
     }
 
     return 0;
