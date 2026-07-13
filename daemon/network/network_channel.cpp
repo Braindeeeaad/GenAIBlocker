@@ -122,7 +122,8 @@ int NetworkRequestChannel::get_socket_fd() const {
 Response NetworkRequestChannel::send_request(const Request& req) {
     stringstream ss;
     ss << req.command << "|"
-       << req.filepath << "|" 
+       << req.filepath << "|"
+       << req.new_line << "|" 
        << req.line << "|" 
        << req.window_size;
     
@@ -181,10 +182,10 @@ Response NetworkRequestChannel::send_request(const Request& req) {
     
     getline(sr, token, '|');
     res.message = token;
-    
+ 
     // SAFE PARSE: Grabs ALL remaining multi-line buffer strings entirely
     if (sr.peek() != EOF) {
-        res.decrypted_window = string(istreambuf_iterator<char>(sr), {});
+        res.file = string(istreambuf_iterator<char>(sr), {});
     }
 
     return res;
@@ -220,12 +221,14 @@ Request NetworkRequestChannel::receive_request() {
     string received_mssg(recv_buf.begin(), recv_buf.end());
     stringstream sr(received_mssg);
     
-    Request req("", "", 0, 0);
+    Request req("", "", "", 0, 0);
     string token;
     getline(sr, token, '|');
     req.command = token;
     getline(sr, token, '|');
     req.filepath = token;
+    getline(sr, token, '|');
+    req.new_line = token;
     getline(sr, token, '|');
     req.line = stoi(token);
     getline(sr, token, '|');
@@ -240,8 +243,8 @@ void NetworkRequestChannel::send_response(const Response& resp) {
        << resp.data << "|"
        << resp.message << "|";
        
-    if (!resp.decrypted_window.empty()) {
-        ss << resp.decrypted_window;
+    if (!resp.file.empty()) {
+        ss << resp.file;
     }
     
     string response_str = ss.str();

@@ -38,7 +38,7 @@ int main(int argc, char *argv[]){
         if(command == "init"){
 
             std::cout << "Command: init, Filepath: " << filepath << std::endl;
-            Request req("init", full_path.string(), 0, 0);
+            Request req("init", full_path.string(),"", 0, 0);
             Response resp = channel.send_request(req);
             std::cout << "Server Response: " << resp.message << std::endl;
             i += 2; // Move past command and filepath
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]){
         else if(command == "mkdir"){
             
             std::cout << "Command: mdkir, Filepath: " << filepath << std::endl;
-            Request req("mkdir", full_path.string(), 0, 0);
+            Request req("mkdir", full_path.string(),"", 0, 0);
             Response resp = channel.send_request(req);
             std::cout << "Server Response: " << resp.message << std::endl;
             i += 2; // Move past command and filepath
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]){
         else if(command == "mkfile"){
             
             std::cout << "Command: mkfile, Filepath: " << filepath << std::endl;
-            Request req("mkfile", full_path.string(), 0, 0);
+            Request req("mkfile", full_path.string(),"", 0, 0);
             Response resp = channel.send_request(req);
             std::cout << "Server Response: " << resp.message << std::endl;
             i += 2; // Move past command and filepath
@@ -76,13 +76,12 @@ int main(int argc, char *argv[]){
             std::cout << "Command: read, Filepath: " << filepath 
                       << ", Line: " << line_num << ", Window Size: " << window_size << std::endl;
             
-            Request req("read", full_path.string(), line_num, window_size);
+            Request req("read", full_path.string(),"", line_num, window_size);
             Response resp = channel.send_request(req);
             
             if (resp.success) {
-                //TODO: replace decypt_windo variable name with file for string output
-                std::cout << "\n--- Decrypted Window Output ---\n";
-                std::cout << resp.decrypted_window;
+                std::cout << resp.file;
+
             } else {
                 std::cerr << "Server Error: " << resp.message << std::endl;
             }
@@ -92,29 +91,28 @@ int main(int argc, char *argv[]){
         }
         else if(command == "write_line"){
             // Verify we have all 4 required arguments for this command
-            if (i + 3 >= argc) {
-                std::cerr << "Error: decrypt_window requires <file> <line_num> <window_size>\n";
+            if (i + 4 >= argc) {
+                std::cerr << "Error: write_file requires <file> <new_line> <line_num> <window_size>\n";
                 return 1;
             }
-            
-            size_t line_num = std::stoull(argv[i+2]);
-            size_t window_size = std::stoull(argv[i+3]);
+
+            std::string new_line = argv[i+2];
+            size_t line_num = std::stoull(argv[i+3]);
+            size_t window_size = std::stoull(argv[i+4]);
             
             std::cout << "Command: decrypt_window, Filepath: " << filepath 
                       << ", Line: " << line_num << ", Window Size: " << window_size << std::endl;
             
-            Request req("decrypt_window", full_path.string(), line_num, window_size);
+            Request req("decrypt_window", full_path.string(),new_line, line_num, window_size);
             Response resp = channel.send_request(req);
             
             if (resp.success) {
-                std::cout << "\n--- Decrypted Window Output ---\n";
-                std::cout << resp.decrypted_window;
-                std::cout << "-------------------------------\n";
+                std::cout << resp.file;
             } else {
                 std::cerr << "Server Error: " << resp.message << std::endl;
             }
             
-            i += 4; // Move past command, filepath, line_num, and window_size
+            i += 5; // Move past command, filepath, new_line, line_num, and window_size
         
         }
         else {

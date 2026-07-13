@@ -6,15 +6,18 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+
+
 class Request {
 public: 
     std::string command;
     std::string filepath;
+    std::string new_line; 
     size_t line; 
     size_t window_size; 
 
-    Request(std::string cmnd, std::string fname, size_t line, size_t window_size)
-        : command(cmnd), filepath(fname), line(line), window_size(window_size) {}
+    Request(std::string cmnd, std::string fname, std::string new_line, size_t line, size_t window_size)
+        : command(cmnd), filepath(fname), new_line(new_line) ,line(line), window_size(window_size) {}
     static Request parseRequest(const std::string& buffer); 
 };
 
@@ -23,11 +26,11 @@ public:
     bool success; 
     std::string message; 
     std::string data;
-    std::string decrypted_window; // <-- Added to hold the decrypted file buffer
+    std::string file; // <-- Added to hold the encrypted/decrypted file view string
 
     // Updated constructor supporting the new string payload
-    Response(bool s, std::string d, std::string mssg, std::string dec_win = "")
-        : success(s), data(d), message(mssg), decrypted_window(dec_win) {}
+    Response(bool s, std::string d, std::string mssg, std::string file = "")
+        : success(s), data(d), message(mssg), file(file) {}
 };
 
 class NetworkRequestChannel {
