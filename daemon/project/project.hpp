@@ -26,10 +26,11 @@ namespace fs = std::filesystem;
 
 class Project{
     private: 
-        unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
+        
         std::string name;
         fs::path projectPath;
         fs::path dotFolderPath; 
+        std::shared_ptr<char[]> sharedKey;
 
         std::unordered_set<fs::path> ignoredFiles;
         std::unique_ptr<MemFsDirectory> project; 
@@ -38,10 +39,19 @@ class Project{
 
     public:
         Project(const fs::path& filepath);
-        
-    private: 
         void init();
+
+        std::string readFile(fs::path& fp,size_t line_num, size_t window);
+        bool writeLine(fs::path& fp, size_t line_num,std::string new_line);
+        bool deleteFile(fs::path& fp);
+        bool addFile(fs::path& fp,bool is_dir);        
+
+    private: 
+        
         void readIgnoreFile();
         void makeDotFolder();
         void loadDotFolder();
+
+
+        
 };

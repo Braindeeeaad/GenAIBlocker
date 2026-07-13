@@ -40,7 +40,7 @@ public:
     virtual void save() = 0;
     virtual void load(bool firstTime) = 0; 
     virtual bool is_directory() = 0;
-    virtual bool find(fs::path filepath);
+    virtual MemFsDirEntry* find(fs::path filepath);
 
     virtual ~MemFsDirEntry() = default;
 };
@@ -48,6 +48,7 @@ public:
 class MemFsDirectory : public MemFsDirEntry {
 private:
     fs::path filepath;
+public:
     std::vector<std::unique_ptr<MemFsDirEntry>> entries;
 public:
 
@@ -60,7 +61,7 @@ public:
     void save() override;
     void load(bool firstTime) override; 
     bool is_directory() override; 
-    bool find(fs::path filepath) override;
+    MemFsDirEntry* find(fs::path filepath) override;
     
     void addEntry(std::unique_ptr<MemFsDirEntry> entry);
     void deleteEntry(const fs::path& filepath);
@@ -79,7 +80,7 @@ public:
     void save() override;
     void load(bool firstTime) override; 
     bool is_directory() override;
-    bool find(fs::path filepath) override;
+    MemFsDirEntry* find(fs::path filepath) override;
     
 
 

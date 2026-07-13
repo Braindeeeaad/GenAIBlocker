@@ -11,6 +11,10 @@
 
 MemFsDirectory::MemFsDirectory(const fs::path& filepath, std::shared_ptr<char[]> key,const std::unordered_set<fs::path>& ignoreSet,bool ignore) 
     : MemFsDirEntry(filepath,key,ignore) {
+
+    if(!fs::exists(filepath)){
+        fs::create_directories(filepath);
+    }    
     for(auto& entry : fs::directory_iterator(filepath)){
         bool childIgnored = ignore || ignoreSet.count(entry.path()) > 0;
         if(entry.is_directory()){
@@ -69,7 +73,7 @@ void MemFsDirectory::load(bool firstTime) {
 }
 
 
-bool MemFsDirectory::find(fs::path fp){
+MemFsDirEntry* MemFsDirectory::find(fs::path fp){
     fs::path curr_path = fp; 
     while(curr_path.has_parent_path()){
         if(curr_path.parent_path()==this->filepath){
@@ -77,17 +81,17 @@ bool MemFsDirectory::find(fs::path fp){
         }
     }
     if(curr_path.parent_path()!=this->filepath){
-        return false; 
+        return nullptr; 
     }
 
     for(auto& entry: entries){
         if(entry->path() == fp)
-            return true;
+            return entry.get();
         if(entry->path() == curr_path){ 
             return entry->find(fp);
         }
     }
-    return false;
+    return nullptr;
 }
 
 void MemFsDirectory::addEntry(std::unique_ptr<MemFsDirEntry> entry) {
@@ -118,7 +122,10 @@ void MemFsDirectory::deleteEntry(const fs::path& fpath) {
 
 MemFsFile::MemFsFile(const fs::path& filepath, std::shared_ptr<char []> key,bool ignore) 
     : MemFsDirEntry(filepath, key, ignore) {
-    
+    if(!fs::exists(filepath)){
+        std::ifstream file(filepath.string());
+        file.close();
+    }
 }
 
 void MemFsFile::save() {
@@ -174,7 +181,7 @@ void MemFsFile::load(bool firstTime){
     file.close();
 }
 
-bool MemFsFile::find(fs::path filep){return filep==this->filepath;}
+MemFsDirEntry* MemFsFile::find(fs::path filep){return this;}
 
 std::string MemFsFile::readFile(size_t line_num,size_t window_size) {
     assert(this->encrypt_offset.size()==this->plain_offset.size());

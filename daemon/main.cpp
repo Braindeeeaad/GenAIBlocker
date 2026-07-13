@@ -1,6 +1,6 @@
-#include "crypto.cpp"
+#include "project/project.hpp"
 #include "include/daemon.hpp"
-#include "network_channel.h"
+#include "network/network_channel.hpp"
 #include <signal.h>
 
 namespace fs = std::filesystem;
