@@ -72,6 +72,9 @@ void MemFsDirectory::load(bool firstTime) {
     }
 }
 
+bool MemFsDirectory::is_directory(){
+    return true; 
+}
 
 MemFsDirEntry* MemFsDirectory::find(fs::path fp){
     fs::path curr_path = fp; 
@@ -181,6 +184,7 @@ void MemFsFile::load(bool firstTime){
     file.close();
 }
 
+bool MemFsFile::is_directory(){return false;}
 MemFsDirEntry* MemFsFile::find(fs::path filep){return this;}
 
 std::string MemFsFile::readFile(size_t line_num,size_t window_size) {

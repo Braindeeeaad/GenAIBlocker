@@ -125,7 +125,7 @@ void Project::readIgnoreFile(){
 
 
 void Project::makeDotFolder(){
-    assert(!fs::create_directories(dotFolderPath));
+    fs::create_directories(dotFolderPath);
     //generate key
     crypto::generateKey((unsigned char *)sharedKey.get());
     //write key into file

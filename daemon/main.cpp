@@ -1,11 +1,8 @@
 #include "project/project.hpp"
 #include "include/daemon.hpp"
 #include "network/network_channel.hpp"
-#include <cstddef>
 #include <exception>
 #include <filesystem>
-#include <signal.h>
-#include <sodium/crypto_core_ed25519.h>
 #include <unordered_map>
 #include <utility>
 
@@ -25,16 +22,16 @@ namespace fs = std::filesystem;
 
 */
 fs::path find_project_dir(fs::path& filepath){
-    fs::path curr_path = filepath; 
-    while(curr_path.has_parent_path()){
+    fs::path curr_path = filepath;
+    std::cout<<"Trying to find project dir"<<std::endl<<std::flush; 
+    while(curr_path!=fs::path("/")){
         fs::path cblocker_path = curr_path / ".cblocker";
         if(fs::exists(cblocker_path))
             return curr_path;    
+        curr_path = curr_path.parent_path();
     }
-    if(fs::exists(curr_path/".cblocker"))
-        return curr_path;
     
-    return fs::path();
+    return filepath;
 }
 
 int main(int argc, char *argv[]) {
@@ -50,8 +47,9 @@ int main(int argc, char *argv[]) {
 
 
     NetworkRequestChannel listener("", 12345, NetworkRequestChannel::SERVER_SIDE);
+    
     std::unordered_map<fs::path, Project*> project_registry;
-
+    std::cout<<"Project registry made"<<std::endl;
 
     while(true) {
         int client_fd = listener.accept_connection();
@@ -69,21 +67,24 @@ int main(int argc, char *argv[]) {
 
         //Okay so the project stays in memory for entire daemon process, kinda cooked 
         //Need some way to close it, i.e make a method to save and clear the proj from mem 
-
+        
         Project* curr_project = nullptr;
         auto it = project_registry.find(filepath);
         if(it != project_registry.end()){
             curr_project = it->second;
+            std::cout<<"Project found"<<std::endl;
         }
         
-
+        std::cout << "Start of command check:"<<command<<std::endl;
         if(command == "init") {
             try{
                 if(curr_project)
                     resp = Response(false, "Fail", "Project already initalized");
                 else{
+                    std::cout<<"Making Project"<<std::endl;
                     curr_project = new Project(project_dir);
                     project_registry.insert(std::pair<fs::path, Project*>(project_dir,curr_project));
+                    std::cout<<"Project Made"<<std::endl;
                     resp = Response(true,"Success", "Project initalized");
                 }  
             } catch(const std::exception& e){

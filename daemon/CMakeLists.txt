@@ -3,7 +3,9 @@ project(cblocker CXX)
 
 add_executable(daemon main.cpp)
 add_executable(${PROJECT_NAME} client.cpp)
-add_library(network_lib network_channel.cpp)
+add_library(network_lib network/network_channel.cpp)
+add_library(memfs memfs/memfs.cpp project/project.cpp crypto/crypto.cpp)
+
 #  force link the global cryptopp library
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
 target_include_directories(daemon PRIVATE ${CMAKE_SOURCE_DIR})
@@ -17,5 +19,6 @@ FetchContent_Declare(
 set(SODIUM_DISABLE_TESTS ON CACHE INTERNAL "")
 FetchContent_MakeAvailable(Sodium)
 
-target_link_libraries(daemon PRIVATE sodium network_lib cryptopp)
-target_link_libraries(${PROJECT_NAME} PRIVATE network_lib)
+target_link_libraries(memfs PRIVATE sodium cryptopp)
+target_link_libraries(daemon PRIVATE network_lib memfs)
+target_link_libraries(${PROJECT_NAME} PRIVATE network_lib memfs)

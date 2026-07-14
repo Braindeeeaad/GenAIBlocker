@@ -40,7 +40,7 @@ public:
     virtual void save() = 0;
     virtual void load(bool firstTime) = 0; 
     virtual bool is_directory() = 0;
-    virtual MemFsDirEntry* find(fs::path filepath);
+    virtual MemFsDirEntry* find(fs::path filepath) = 0;
 
     virtual ~MemFsDirEntry() = default;
 };
