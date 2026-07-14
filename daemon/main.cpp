@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
                 else{
                     std::cout<<"Making Project"<<std::endl;
                     curr_project = new Project(project_dir);
+                    curr_project->init();
                     project_registry.insert(std::pair<fs::path, Project*>(project_dir,curr_project));
                     std::cout<<"Project Made"<<std::endl;
                     resp = Response(true,"Success", "Project initalized");
